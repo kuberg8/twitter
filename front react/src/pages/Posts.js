@@ -1,68 +1,135 @@
-import React, { useState, useEffect } from "react";
-import Box from "@mui/material/Box";
-import { LoadingButton } from "@mui/lab";
-import Button from "@mui/material/Button";
-import Post from "../components/post/Post";
-import TextareaAutosize from "@mui/base/TextareaAutosize";
+import React, { useState, useEffect, useRef } from 'react'
+import Box from '@mui/material/Box'
+import { LoadingButton } from '@mui/lab'
+import Button from '@mui/material/Button'
+import Post from '../components/post/Post'
 
-import { getPosts, createPost, deletePost, updatePost } from "../api/posts";
+import smsAudio from '../assets/sms.mp3'
+
+import { getPosts, createPost, deletePost, updatePost } from '../api/posts'
+
+let ws = new WebSocket('ws://192.168.1.5:8080')
 
 export default function Index(props) {
-  const [posts, setPosts] = useState([]);
-  const [value, setValue] = useState("");
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [editPost, setEditPost] = useState(null);
+  const [posts, setPosts] = useState([])
+  const [value, setValue] = useState('')
+  const [saveLoading, setSaveLoading] = useState(false)
+  const [editPost, setEditPost] = useState(null)
+
+  const chatRef = useRef(null)
 
   useEffect(() => {
-    getPosts().then(({ data }) => setPosts(data));
-  }, []);
+    fetchPost()
+    let postCount = posts.length
+
+    const messageHandler = ({ data }) => {
+      const newPosts = JSON.parse(data)
+
+      try {
+        if (newPosts[newPosts.length - 1].user._id !== props.userId && newPosts.length > postCount) {
+          const audio = new Audio(smsAudio)
+          audio.play()
+        }
+      } catch (e) {
+        Promise.reject(e)
+      }
+
+      setPosts(newPosts)
+      postCount = newPosts.length
+      scrollToBottom()
+    }
+
+    ws.addEventListener('message', messageHandler)
+
+    const reconectWbSocket = async () => {
+      await fetchPost()
+      ws = new WebSocket('ws://192.168.1.5:8080')
+      ws.addEventListener('message', messageHandler)
+    }
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && document.hasFocus()) {
+        reconectWbSocket()
+      }
+    }
+
+    // переподключение к сокетам
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', () => {
+      reconectWbSocket()
+    })
+  }, [])
 
   const save = async () => {
-    setSaveLoading(true);
+    setSaveLoading(true)
 
     try {
       if (editPost) {
-        await updatePost(editPost._id, editPost.message);
-        setEditPost(null);
+        // await updatePost(editPost._id, editPost.message);
+        if (editPost.message) {
+          ws.send(JSON.stringify({ message: editPost.message.trim(), userId: props.userId, postId: editPost._id }))
+        }
+        setEditPost(null)
       } else {
-        await createPost(value);
-        setValue("");
+        // await createPost(value);
+        value && ws.send(JSON.stringify({ message: value.trim(), userId: props.userId }))
+        setValue('')
       }
-
-      await fetchPost();
     } catch (err) {
-      Promise.reject(err);
+      Promise.reject(err)
     }
 
-    setSaveLoading(false);
-  };
+    setSaveLoading(false)
+  }
 
   const removePost = (id) => {
-    deletePost(id).then(() => fetchPost());
-  };
+    deletePost(id).then(() => fetchPost())
+  }
 
-  const fetchPost = () => {
-    getPosts().then(({ data }) => setPosts(data));
-  };
+  const fetchPost = async () => {
+    try {
+      const { data } = await getPosts()
+      setPosts(data)
+      scrollToBottom()
+    } catch (err) {
+      Promise.reject(err)
+    }
+  }
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      const elementOffset = chatRef.current.scrollHeight - chatRef.current.clientHeight + 100
+
+      chatRef.current.scrollTo({
+        top: elementOffset,
+        behavior: 'smooth',
+      })
+    }, 100)
+  }
 
   return (
     <Box
-      sx={{
-        width: 500,
-        margin: "20px auto",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
+      style={{
+        position: 'fixed',
+        bottom: '0',
+        height: '100%',
+        width: '100vw',
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
       }}
     >
       <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          rowGap: "15px",
-          width: "100%",
-          marginBottom: "20px",
+          display: 'flex',
+          flexDirection: 'column',
+          rowGap: '15px',
+          width: '100%',
+          overflow: 'auto',
+          padding: '20px',
         }}
+        ref={chatRef}
       >
         {posts.map((post) => (
           <Post
@@ -75,47 +142,44 @@ export default function Index(props) {
         ))}
       </div>
 
-      <TextareaAutosize
-        value={editPost ? editPost.message : value}
-        onChange={({ target }) =>
-          editPost
-            ? setEditPost({
-                ...editPost,
-                message: target.value,
-              })
-            : setValue(target.value)
-        }
-        style={{
-          width: "100%",
-          minWidth: "100%",
-          height: 150,
-          padding: "10px 20px",
-        }}
-      />
+      <div style={{ marginTop: 'auto', width: '100%', padding: '0 20px 20px' }}>
+        <textarea
+          value={editPost ? editPost.message : value}
+          onChange={({ target }) =>
+            editPost
+              ? setEditPost({
+                  ...editPost,
+                  message: target.value,
+                })
+              : setValue(target.value)
+          }
+          style={{
+            width: '100%',
+            padding: '10px 20px',
+            marginBottom: '10px',
+            resize: 'none',
+          }}
+        />
 
-      <div style={{ display: "flex", width: "100%", columnGap: "20px" }}>
-        <LoadingButton
-          loading={saveLoading}
-          variant="contained"
-          onClick={save}
-          fullWidth
-          size="large"
+        <div
+          style={{
+            display: 'flex',
+            width: '100%',
+            maxWidth: '100vw',
+            columnGap: '20px',
+          }}
         >
-          {editPost ? "Сохранить" : "Отправить"}
-        </LoadingButton>
+          <LoadingButton loading={saveLoading} variant="contained" onClick={save} fullWidth size="large">
+            {editPost ? 'Сохранить' : 'Отправить'}
+          </LoadingButton>
 
-        {editPost && (
-          <Button
-            onClick={() => setEditPost(null)}
-            fullWidth
-            size="large"
-            color="error"
-            variant="contained"
-          >
-            Отмена
-          </Button>
-        )}
+          {editPost && (
+            <Button onClick={() => setEditPost(null)} fullWidth size="large" color="error" variant="contained">
+              Отмена
+            </Button>
+          )}
+        </div>
       </div>
     </Box>
-  );
+  )
 }

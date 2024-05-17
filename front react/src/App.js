@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
+import Alert from "@mui/material/Alert";
+import { withAuthRedirect } from "./hoc/withAuthRedirect";
+// Pages
 import SingIn from "./pages/SingIn";
 import SingUp from "./pages/SingUp";
 import Posts from "./pages/Posts";
 import NotFound from "./pages/NotFound";
-import Alert from "@mui/material/Alert";
-import { withAuthRedirect } from "./hoc/withAuthRedirect";
-
-import axios from "./utils/axios";
-
-const setBarrer = (token) => {
-  axios.defaults.headers.common["Authorization"] = "Bearer " + token;
-};
-
-const isAuthorization = !!axios.defaults.headers.common["Authorization"];
 
 function App() {
   const [state, setState] = useState({
@@ -35,14 +28,18 @@ function App() {
         reason.message;
 
       setAlert(error, "error");
+
+      if (reason?.response?.status === 403) {
+        setState({
+          ...state,
+          isAuth: false,
+        });
+        localStorage.clear();
+      }
     });
   }, []);
 
-  if (!isAuthorization) {
-    const token = localStorage.getItem("token");
-    setBarrer(token);
-  }
-
+  // TODO - вынести в стор
   const auth = (userId, token) => {
     setState({
       ...state,
@@ -52,9 +49,9 @@ function App() {
 
     localStorage.setItem("token", token);
     localStorage.setItem("userId", userId);
-    setBarrer(token);
   };
 
+  // TODO - вынести в хук useContext
   const setAlert = (text, type = "success") => {
     setState({
       ...state,
@@ -64,13 +61,11 @@ function App() {
     });
 
     setTimeout(() => {
-      setState({
-        ...state,
-        alertText: text,
+      setState(prevState => ({
+        ...prevState,
         alertShow: false,
-        alertType: type,
-      });
-    }, 2000);
+      }));
+    }, 5000);
   };
 
   return (
@@ -92,8 +87,10 @@ function App() {
         severity={state.alertType}
         style={{
           position: "fixed",
-          right: "20px",
-          bottom: "20px",
+          alignItems: "center",
+          right: "10px",
+          top: "10px",
+          maxWidth: 'calc(100vw - 20px)',
           transition: "0.4s",
           opacity: state.alertShow ? "1" : "0",
         }}

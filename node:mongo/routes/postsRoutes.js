@@ -69,7 +69,7 @@ router.get("/", authMiddleware, getPosts);
  */
 router.put(
   "/:id",
-  [check("message", "Сообщение поста обязательно").notEmpty()],
+  [authMiddleware, check("message", "Сообщение поста обязательно").notEmpty()],
   updatePost
 );
 
@@ -94,6 +94,6 @@ router.put(
  *       200:
  *         description: Successfully deleted
  */
-router.delete("/:id", deletePost);
+router.delete("/:id", authMiddleware, deletePost);
 
 module.exports = router;
