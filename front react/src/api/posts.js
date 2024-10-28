@@ -1,11 +1,11 @@
-import axios from "../utils/axios.js";
+import axios from '../utils/axios.js';
 
 /**
  * Получение постов
  * @return {Array} Посты
  */
 function getPosts() {
-  return axios.get("/posts");
+  return axios.get('/posts');
 }
 
 /**
@@ -13,7 +13,7 @@ function getPosts() {
  * @param {String} message
  */
 function createPost(message) {
-  return axios.post("/posts", { message });
+  return axios.post('/posts', { message });
 }
 
 /**

@@ -1,27 +1,27 @@
-import * as React from "react";
-import Avatar from "@mui/material/Avatar";
-import CssBaseline from "@mui/material/CssBaseline";
-import Link from "@mui/material/Link";
-import Grid from "@mui/material/Grid";
-import Box from "@mui/material/Box";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import { LoadingButton } from "@mui/lab";
-import Typography from "@mui/material/Typography";
-import Container from "@mui/material/Container";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import * as React from 'react';
+import Avatar from '@mui/material/Avatar';
+import CssBaseline from '@mui/material/CssBaseline';
+import Link from '@mui/material/Link';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import { LoadingButton } from '@mui/lab';
+import Typography from '@mui/material/Typography';
+import Container from '@mui/material/Container';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 
-import { Form } from "react-final-form";
-import { FORM_ERROR } from "final-form";
-import Input from "../components/input/Input";
-import { validation } from "../utils/validation";
+import { Form } from 'react-final-form';
+import { FORM_ERROR } from 'final-form';
+import Input from '../components/input/Input';
+import { validation } from '../utils/validation';
 
-import { registration } from "../api/auth";
-import { useNavigate } from "react-router-dom";
+import { registration } from '../api/auth';
+import { useNavigate } from 'react-router-dom';
 
 const theme = createTheme();
 
 const SingUpFormRender = ({ submitError, handleSubmit, submitting }) => (
-  <form onSubmit={handleSubmit} style={{ width: "100%", marginTop: "10px" }}>
+  <form onSubmit={handleSubmit} style={{ width: '100%', marginTop: '10px' }}>
     <Grid container spacing={2}>
       <Grid item xs={12} sm={6}>
         <Input name="first_name" label="First Name" />
@@ -53,7 +53,7 @@ const SingUpFormRender = ({ submitError, handleSubmit, submitting }) => (
     </LoadingButton>
 
     {submitError && (
-      <div style={{ color: "#d32f2f", textAlign: "right" }}>{submitError}</div>
+      <div style={{ color: '#d32f2f', textAlign: 'right' }}>{submitError}</div>
     )}
     <Grid container justifyContent="flex-end">
       <Grid item>
@@ -80,7 +80,7 @@ export default function SignUp(props) {
       );
 
       props.setAlert(data.message);
-      history("/sing-in");
+      history('/sing-in');
     } catch ({ response }) {
       return { [FORM_ERROR]: response.data.message };
     }
@@ -93,12 +93,12 @@ export default function SignUp(props) {
         <Box
           sx={{
             marginTop: 8,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
           }}
         >
-          <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
+          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
             <LockOutlinedIcon />
           </Avatar>
           <Typography component="h1" variant="h5">
@@ -109,7 +109,12 @@ export default function SignUp(props) {
             onSubmit={onSubmit}
             render={SingUpFormRender}
             validate={(values) =>
-              validation(values, ["first_name", "last_name", "email", "password"])
+              validation(values, [
+                'first_name',
+                'last_name',
+                'email',
+                'password',
+              ])
             }
           />
         </Box>

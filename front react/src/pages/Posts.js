@@ -1,111 +1,124 @@
-import React, { useState, useEffect, useRef } from 'react'
-import Box from '@mui/material/Box'
-import { LoadingButton } from '@mui/lab'
-import Button from '@mui/material/Button'
-import Post from '../components/post/Post'
+import React, { useState, useEffect, useRef } from 'react';
+import Box from '@mui/material/Box';
+import { LoadingButton } from '@mui/lab';
+import Button from '@mui/material/Button';
+import Post from '../components/post/Post';
 
-import smsAudio from '../assets/sms.mp3'
+import smsAudio from '../assets/sms.mp3';
 
-import { getPosts, createPost, deletePost, updatePost } from '../api/posts'
+import { getPosts, deletePost } from '../api/posts';
 
-let ws = new WebSocket('ws://192.168.1.5:8080')
+let ws = new WebSocket('ws://localhost:8080');
 
 export default function Index(props) {
-  const [posts, setPosts] = useState([])
-  const [value, setValue] = useState('')
-  const [saveLoading, setSaveLoading] = useState(false)
-  const [editPost, setEditPost] = useState(null)
+  const [posts, setPosts] = useState([]);
+  const [value, setValue] = useState('');
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [editPost, setEditPost] = useState(null);
 
-  const chatRef = useRef(null)
+  const chatRef = useRef(null);
 
   useEffect(() => {
-    fetchPost()
-    let postCount = posts.length
+    fetchPost();
+    let postCount = posts.length;
 
     const messageHandler = ({ data }) => {
-      const newPosts = JSON.parse(data)
+      const newPosts = JSON.parse(data);
 
       try {
-        if (newPosts[newPosts.length - 1].user._id !== props.userId && newPosts.length > postCount) {
-          const audio = new Audio(smsAudio)
-          audio.play()
+        if (
+          newPosts[newPosts.length - 1].user !== props.userId &&
+          newPosts.length > postCount
+        ) {
+          const audio = new Audio(smsAudio);
+          audio.play();
         }
       } catch (e) {
-        Promise.reject(e)
+        Promise.reject(e);
       }
 
-      setPosts(newPosts)
-      postCount = newPosts.length
-      scrollToBottom()
-    }
+      setPosts(newPosts);
+      postCount = newPosts.length;
+      scrollToBottom();
+    };
 
-    ws.addEventListener('message', messageHandler)
+    ws.addEventListener('message', messageHandler);
 
     const reconectWbSocket = async () => {
-      await fetchPost()
-      ws = new WebSocket('ws://192.168.1.5:8080')
-      ws.addEventListener('message', messageHandler)
-    }
+      await fetchPost();
+      ws = new WebSocket('ws://localhost:8080');
+      ws.addEventListener('message', messageHandler);
+    };
 
     const handleVisibilityChange = () => {
       if (!document.hidden && document.hasFocus()) {
-        reconectWbSocket()
+        reconectWbSocket();
       }
-    }
+    };
 
     // переподключение к сокетам
-    document.addEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', () => {
-      reconectWbSocket()
-    })
-  }, [])
+      reconectWbSocket();
+    });
+  }, []);
 
   const save = async () => {
-    setSaveLoading(true)
+    setSaveLoading(true);
 
     try {
       if (editPost) {
         // await updatePost(editPost._id, editPost.message);
         if (editPost.message) {
-          ws.send(JSON.stringify({ message: editPost.message.trim(), userId: props.userId, postId: editPost._id }))
+          ws.send(
+            JSON.stringify({
+              message: editPost.message.trim(),
+              userId: props.userId,
+              postId: editPost._id,
+            })
+          );
         }
-        setEditPost(null)
+        setEditPost(null);
       } else {
         // await createPost(value);
-        value && ws.send(JSON.stringify({ message: value.trim(), userId: props.userId }))
-        setValue('')
+        value &&
+          ws.send(
+            JSON.stringify({ message: value.trim(), userId: props.userId })
+          );
+        setValue('');
       }
     } catch (err) {
-      Promise.reject(err)
+      Promise.reject(err);
     }
 
-    setSaveLoading(false)
-  }
+    setSaveLoading(false);
+  };
 
   const removePost = (id) => {
-    deletePost(id).then(() => fetchPost())
-  }
+    deletePost(id).then(() => fetchPost());
+  };
 
   const fetchPost = async () => {
     try {
-      const { data } = await getPosts()
-      setPosts(data)
-      scrollToBottom()
+      const { data } = await getPosts();
+      setPosts(data);
+      scrollToBottom();
     } catch (err) {
-      Promise.reject(err)
+      Promise.reject(err);
     }
-  }
+  };
 
   const scrollToBottom = () => {
     setTimeout(() => {
-      const elementOffset = chatRef.current.scrollHeight - chatRef.current.clientHeight + 100
+      const elementOffset =
+        chatRef.current.scrollHeight - chatRef.current.clientHeight + 100;
 
       chatRef.current.scrollTo({
         top: elementOffset,
         behavior: 'smooth',
-      })
-    }, 100)
-  }
+      });
+    }, 100);
+  };
 
   return (
     <Box
@@ -137,7 +150,7 @@ export default function Index(props) {
             post={post}
             deletePost={removePost}
             setEdit={setEditPost}
-            isOwner={post.user._id === props.userId}
+            isOwner={post.user === props.userId}
           />
         ))}
       </div>
@@ -169,17 +182,29 @@ export default function Index(props) {
             columnGap: '20px',
           }}
         >
-          <LoadingButton loading={saveLoading} variant="contained" onClick={save} fullWidth size="large">
+          <LoadingButton
+            loading={saveLoading}
+            variant="contained"
+            onClick={save}
+            fullWidth
+            size="large"
+          >
             {editPost ? 'Сохранить' : 'Отправить'}
           </LoadingButton>
 
           {editPost && (
-            <Button onClick={() => setEditPost(null)} fullWidth size="large" color="error" variant="contained">
+            <Button
+              onClick={() => setEditPost(null)}
+              fullWidth
+              size="large"
+              color="error"
+              variant="contained"
+            >
               Отмена
             </Button>
           )}
         </div>
       </div>
     </Box>
-  )
+  );
 }

@@ -1,9 +1,9 @@
-import * as React from 'react'
-import Typography from '@mui/material/Typography'
-import { CardActions, Box, Paper } from '@mui/material'
-import DeleteIcon from '@mui/icons-material/Delete'
-import IconButton from '@mui/material/IconButton'
-import EditIcon from '@mui/icons-material/Edit'
+import * as React from 'react';
+import Typography from '@mui/material/Typography';
+import { Box, Paper } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import IconButton from '@mui/material/IconButton';
+import EditIcon from '@mui/icons-material/Edit';
 
 export default function ActionAreaCard({ post, deletePost, setEdit, isOwner }) {
   return (
@@ -38,19 +38,25 @@ export default function ActionAreaCard({ post, deletePost, setEdit, isOwner }) {
         </Typography>
 
         {isOwner && (
-          <span style={{
-            display: 'flex',
-            justifyContent: 'flex-end'
-          }}>
+          <span
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+            }}
+          >
             <IconButton onClick={() => setEdit(post)} size="small">
               <EditIcon />
             </IconButton>
-            <IconButton onClick={() => deletePost(post._id)} size="small" color="error">
+            <IconButton
+              onClick={() => deletePost(post._id)}
+              size="small"
+              color="error"
+            >
               <DeleteIcon />
             </IconButton>
           </span>
         )}
       </Paper>
     </Box>
-  )
+  );
 }

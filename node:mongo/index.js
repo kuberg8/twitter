@@ -15,7 +15,7 @@ const postRoutes = require('./routes/postsRoutes')
 
 // app
 const app = express()
-const mongoURL = 'mongodb://localhost:27017/test'
+const mongoURL = 'mongodb://127.0.0.1:27017/test'
 const PORT = 3000
 
 // middleware

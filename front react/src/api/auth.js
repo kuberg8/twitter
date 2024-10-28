@@ -1,4 +1,4 @@
-import axios from "../utils/axios.js";
+import axios from '../utils/axios.js';
 
 /**
  * Авторизация
@@ -6,7 +6,7 @@ import axios from "../utils/axios.js";
  * @param {String} password
  */
 function login(email, password) {
-  return axios.post("/auth/login", { email, password });
+  return axios.post('/auth/login', { email, password });
 }
 
 /**
@@ -17,7 +17,7 @@ function login(email, password) {
  * @param {String} last_name
  */
 function registration(email, password, first_name, last_name) {
-  return axios.post("/auth/registration", {
+  return axios.post('/auth/registration', {
     email,
     password,
     first_name,

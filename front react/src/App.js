@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from "react";
-import { Route, Routes } from "react-router-dom";
-import Alert from "@mui/material/Alert";
-import { withAuthRedirect } from "./hoc/withAuthRedirect";
+import React, { useState, useEffect } from 'react';
+import { Route, Routes } from 'react-router-dom';
+import Alert from '@mui/material/Alert';
+import { withAuthRedirect } from './hoc/withAuthRedirect';
 // Pages
-import SingIn from "./pages/SingIn";
-import SingUp from "./pages/SingUp";
-import Posts from "./pages/Posts";
-import NotFound from "./pages/NotFound";
+import SingIn from './pages/SingIn';
+import SingUp from './pages/SingUp';
+import Posts from './pages/Posts';
+import NotFound from './pages/NotFound';
 
 function App() {
   const [state, setState] = useState({
-    userId: localStorage.getItem("userId") || null,
-    isAuth: !!localStorage.getItem("token"),
+    userId: localStorage.getItem('userId') || null,
+    isAuth: !!localStorage.getItem('token'),
 
     alertShow: false,
-    alertText: "",
-    alertType: "success",
+    alertText: '',
+    alertType: 'success',
   });
 
   useEffect(() => {
-    window.addEventListener("unhandledrejection", ({ reason }) => {
+    window.addEventListener('unhandledrejection', ({ reason }) => {
       const { errors } = reason?.response?.data || {};
 
       const error =
@@ -27,7 +27,7 @@ function App() {
         reason?.response?.data?.message ||
         reason.message;
 
-      setAlert(error, "error");
+      setAlert(error, 'error');
 
       if (reason?.response?.status === 403) {
         setState({
@@ -47,12 +47,12 @@ function App() {
       isAuth: true,
     });
 
-    localStorage.setItem("token", token);
-    localStorage.setItem("userId", userId);
+    localStorage.setItem('token', token);
+    localStorage.setItem('userId', userId);
   };
 
   // TODO - вынести в хук useContext
-  const setAlert = (text, type = "success") => {
+  const setAlert = (text, type = 'success') => {
     setState({
       ...state,
       alertText: text,
@@ -61,7 +61,7 @@ function App() {
     });
 
     setTimeout(() => {
-      setState(prevState => ({
+      setState((prevState) => ({
         ...prevState,
         alertShow: false,
       }));
@@ -86,13 +86,13 @@ function App() {
       <Alert
         severity={state.alertType}
         style={{
-          position: "fixed",
-          alignItems: "center",
-          right: "10px",
-          top: "10px",
+          position: 'fixed',
+          alignItems: 'center',
+          right: '10px',
+          top: '10px',
           maxWidth: 'calc(100vw - 20px)',
-          transition: "0.4s",
-          opacity: state.alertShow ? "1" : "0",
+          transition: '0.4s',
+          opacity: state.alertShow ? '1' : '0',
         }}
       >
         {state.alertText}

@@ -1,28 +1,28 @@
-import * as React from "react";
-import Avatar from "@mui/material/Avatar";
-import { LoadingButton } from "@mui/lab";
-import CssBaseline from "@mui/material/CssBaseline";
-import Box from "@mui/material/Box";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import Typography from "@mui/material/Typography";
-import Container from "@mui/material/Container";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
-import Link from "@mui/material/Link";
-import Grid from "@mui/material/Grid";
+import * as React from 'react';
+import Avatar from '@mui/material/Avatar';
+import { LoadingButton } from '@mui/lab';
+import CssBaseline from '@mui/material/CssBaseline';
+import Box from '@mui/material/Box';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import Typography from '@mui/material/Typography';
+import Container from '@mui/material/Container';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import Link from '@mui/material/Link';
+import Grid from '@mui/material/Grid';
 
 // FORM
-import { Form } from "react-final-form";
-import { FORM_ERROR } from "final-form";
-import { validation } from "../utils/validation";
-import Input from "../components/input/Input";
+import { Form } from 'react-final-form';
+import { FORM_ERROR } from 'final-form';
+import { validation } from '../utils/validation';
+import Input from '../components/input/Input';
 
-import { login } from "../api/auth";
-import { useNavigate } from "react-router-dom";
+import { login } from '../api/auth';
+import { useNavigate } from 'react-router-dom';
 
 const theme = createTheme();
 
 const SingInFormRender = ({ submitError, handleSubmit, submitting }) => (
-  <form onSubmit={handleSubmit} style={{ width: "100%", marginTop: "10px" }}>
+  <form onSubmit={handleSubmit} style={{ width: '100%', marginTop: '10px' }}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
         <Input name="email" label="Email" />
@@ -43,7 +43,7 @@ const SingInFormRender = ({ submitError, handleSubmit, submitting }) => (
     </LoadingButton>
 
     {submitError && (
-      <div style={{ color: "#d32f2f", textAlign: "right" }}>{submitError}</div>
+      <div style={{ color: '#d32f2f', textAlign: 'right' }}>{submitError}</div>
     )}
 
     <Grid container>
@@ -63,9 +63,9 @@ function SignIn({ auth }) {
   const onSubmit = async ({ email, password }) => {
     try {
       const { data } = await login(email, password);
-      
+
       auth(data.user_id, data.token);
-      history("/");
+      history('/');
     } catch ({ response }) {
       return { [FORM_ERROR]: response.data.message };
     }
@@ -78,12 +78,12 @@ function SignIn({ auth }) {
         <Box
           sx={{
             marginTop: 8,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
           }}
         >
-          <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
+          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
             <LockOutlinedIcon />
           </Avatar>
           <Typography component="h1" variant="h5">
@@ -93,7 +93,7 @@ function SignIn({ auth }) {
           <Form
             onSubmit={onSubmit}
             render={SingInFormRender}
-            validate={(values) => validation(values, ["email", "password"])}
+            validate={(values) => validation(values, ['email', 'password'])}
           />
         </Box>
       </Container>
