@@ -3,7 +3,6 @@ const { Schema, model } = require("mongoose");
 const Post = new Schema({
   created_at: { type: Number, default: Date.now() },
   message: { type: String, required: true },
-  // file: { type: Buffer, contentType: String },
   user: { type: Object, ref: "User" },
 });
 
