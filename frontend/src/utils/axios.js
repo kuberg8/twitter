@@ -1,7 +1,8 @@
 import axios from 'axios';
+// import { navigate } from 'react-router-dom';
 
 const instance = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000',
 });
 
 instance.interceptors.request.use((request) => {
@@ -16,5 +17,20 @@ instance.interceptors.request.use((request) => {
 
   return request;
 });
+
+// instance.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     const { response } = error;
+
+//     if (response && response.status === 403) {
+//       store.dispatch({ type: 'LOGOUT' });
+//       localStorage.clear();
+//       navigate('/sing-in');
+//     }
+
+//     return Promise.reject(error);
+//   }
+// );
 
 export default instance;

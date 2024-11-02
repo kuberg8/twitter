@@ -57,14 +57,14 @@ const SingInFormRender = ({ submitError, handleSubmit, submitting }) => (
   </form>
 );
 
-function SignIn({ auth }) {
+function SignIn({ setUserData }) {
   const history = useNavigate();
 
   const onSubmit = async ({ email, password }) => {
     try {
       const { data } = await login(email, password);
 
-      auth(data.user_id, data.token);
+      setUserData(data.user_id, data.token);
       history('/');
     } catch ({ response }) {
       return { [FORM_ERROR]: response.data.message };

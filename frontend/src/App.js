@@ -1,25 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
-import Alert from '@mui/material/Alert';
+import React, { useReducer, useEffect } from 'react';
+import rootReducer from './reducers/rootReducer';
+import { Route, Routes, useNavigate } from 'react-router-dom';
 import { withAuthRedirect } from './hoc/withAuthRedirect';
+import { useAlert } from './context/AlertContext';
 // Pages
 import SingIn from './pages/SingIn';
 import SingUp from './pages/SingUp';
 import Posts from './pages/Posts';
 import NotFound from './pages/NotFound';
 
-function App() {
-  const [state, setState] = useState({
-    userId: localStorage.getItem('userId') || null,
-    isAuth: !!localStorage.getItem('token'),
+import Alert from './components/alert/alert';
 
-    alertShow: false,
-    alertText: '',
-    alertType: 'success',
-  });
+function App() {
+  const [state, dispatch] = useReducer(rootReducer, { user: {} });
+  const { alert, triggerAlert } = useAlert();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    window.addEventListener('unhandledrejection', ({ reason }) => {
+    const handleUnhandledRejection = ({ reason }) => {
       const { errors } = reason?.response?.data || {};
 
       const error =
@@ -27,45 +25,33 @@ function App() {
         reason?.response?.data?.message ||
         reason.message;
 
-      setAlert(error, 'error');
+      triggerAlert(error, 'error');
 
       if (reason?.response?.status === 403) {
-        setState({
-          ...state,
-          isAuth: false,
-        });
+        dispatch({ type: 'LOGOUT' });
         localStorage.clear();
+        navigate('/sing-in');
       }
-    });
-  }, []);
+    };
 
-  // TODO - вынести в стор
-  const auth = (userId, token) => {
-    setState({
-      ...state,
-      userId,
-      isAuth: true,
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener(
+        'unhandledrejection',
+        handleUnhandledRejection
+      );
+    };
+  }, [triggerAlert, navigate]);
+
+  const setUserData = (userId, token) => {
+    dispatch({
+      type: 'LOGIN',
+      payload: { userId },
     });
 
     localStorage.setItem('token', token);
     localStorage.setItem('userId', userId);
-  };
-
-  // TODO - вынести в хук useContext
-  const setAlert = (text, type = 'success') => {
-    setState({
-      ...state,
-      alertText: text,
-      alertShow: true,
-      alertType: type,
-    });
-
-    setTimeout(() => {
-      setState((prevState) => ({
-        ...prevState,
-        alertShow: false,
-      }));
-    }, 5000);
   };
 
   return (
@@ -75,28 +61,19 @@ function App() {
           exact
           path="/"
           element={withAuthRedirect(
-            <Posts isAuth={state.isAuth} userId={state.userId} />
+            <Posts isAuth={state.user.isAuth} userId={state.user.userId} />
           )}
         />
-        <Route path="/sing-in" element={<SingIn auth={auth} />} />
-        <Route path="/sing-up" element={<SingUp setAlert={setAlert} />} />
+        <Route path="/sing-in" element={<SingIn setUserData={setUserData} />} />
+        <Route path="/sing-up" element={<SingUp setAlert={triggerAlert} />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
 
       <Alert
-        severity={state.alertType}
-        style={{
-          position: 'fixed',
-          alignItems: 'center',
-          right: '10px',
-          top: '10px',
-          maxWidth: 'calc(100vw - 20px)',
-          transition: '0.4s',
-          opacity: state.alertShow ? '1' : '0',
-        }}
-      >
-        {state.alertText}
-      </Alert>
+        show={alert.alertShow}
+        type={alert.alertType}
+        text={alert.alertText}
+      />
     </>
   );
 }
