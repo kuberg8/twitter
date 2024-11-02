@@ -1,7 +1,8 @@
 const express = require('express')
 const cors = require('cors')
 const mongoose = require('mongoose')
-const WebSocket = require('ws')
+require('dotenv').config()
+require('./websocket/websocket')
 
 // swagger
 const swaggerUi = require('swagger-ui-express')
@@ -27,47 +28,12 @@ app.use(cors())
 app.use('/auth', authRoutes)
 app.use('/posts', postRoutes)
 
+mongoose.set('strictQuery', true)
 mongoose
   .connect(mongoURL)
-  .then(({ connection }) => {
+  .then(() => {
     app.listen(PORT, () => {
       console.log(`Server has been started on port - ${PORT}`)
     })
   })
   .catch((err) => console.log(err))
-
-const wsServer = new WebSocket.Server({ port: 8080 })
-
-const Post = require('./models/Post')
-const User = require('./models/User')
-
-wsServer.on('connection', (ws) => {
-  ws.on('message', async (data, isBinary) => {
-    const message = isBinary ? data : data.toString()
-    const parseData = JSON.parse(message)
-    console.log(parseData)
-
-    const user = await User.findById(parseData.userId)
-
-    let post
-
-    if (parseData.postId) {
-      post = await Post.findById(parseData.postId)
-      post.message = parseData.message
-    } else {
-      post = new Post({
-        message: parseData.message,
-        user,
-      })
-    }
-
-    await post.save()
-    const posts = await Post.find()
-
-    wsServer.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(posts))
-      }
-    })
-  })
-})
