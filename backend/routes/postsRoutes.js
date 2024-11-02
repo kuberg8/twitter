@@ -1,14 +1,14 @@
-const { Router } = require("express");
+const { Router } = require('express')
 const {
   getPosts,
   createPost,
   updatePost,
   deletePost,
-} = require("../controllers/PostController");
-const { check } = require("express-validator");
-const authMiddleware = require("../middleware/authMiddleware");
+} = require('../controllers/PostController')
+const { check } = require('express-validator')
+const authMiddleware = require('../middleware/authMiddleware')
 
-const router = Router();
+const router = Router()
 
 /**
  * @swagger
@@ -25,10 +25,10 @@ const router = Router();
  *         description: Successfully created
  */
 router.post(
-  "/",
-  [authMiddleware, check("message", "Сообщение поста обязательно").notEmpty()],
+  '/',
+  [authMiddleware, check('message', 'Сообщение поста обязательно').notEmpty()],
   createPost
-);
+)
 
 /**
  * @swagger
@@ -44,7 +44,7 @@ router.post(
  *       200:
  *         description: An array of posts
  */
-router.get("/", authMiddleware, getPosts);
+router.get('/', authMiddleware, getPosts)
 
 /**
  * @swagger
@@ -68,10 +68,10 @@ router.get("/", authMiddleware, getPosts);
  *         description: Successfully update
  */
 router.put(
-  "/:id",
-  [authMiddleware, check("message", "Сообщение поста обязательно").notEmpty()],
+  '/:id',
+  [authMiddleware, check('message', 'Сообщение поста обязательно').notEmpty()],
   updatePost
-);
+)
 
 /**
  * @swagger
@@ -94,6 +94,6 @@ router.put(
  *       200:
  *         description: Successfully deleted
  */
-router.delete("/:id", authMiddleware, deletePost);
+router.delete('/:id', authMiddleware, deletePost)
 
-module.exports = router;
+module.exports = router

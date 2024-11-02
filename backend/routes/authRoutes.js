@@ -1,8 +1,8 @@
-const { Router } = require("express");
-const { login, registration } = require("../controllers/AuthController");
-const { check } = require("express-validator");
+const { Router } = require('express')
+const { login, registration } = require('../controllers/AuthController')
+const { check } = require('express-validator')
 
-const router = Router();
+const router = Router()
 
 /**
  * @swagger
@@ -26,12 +26,12 @@ const router = Router();
  *         description: Successfully registered
  */
 router.post(
-  "/registration",
+  '/registration',
   [
-    check("first_name", "Имя пользователя обязательно").notEmpty(),
-    check("last_name", "Фамилия пользователя обязательна").notEmpty(),
-    check("email", "Email пользователя обязателен").notEmpty(),
-    check("password", "Длина пароля должна быть не меньше 4 символов").isLength(
+    check('first_name', 'Имя пользователя обязательно').notEmpty(),
+    check('last_name', 'Фамилия пользователя обязательна').notEmpty(),
+    check('email', 'Email пользователя обязателен').notEmpty(),
+    check('password', 'Длина пароля должна быть не меньше 4 символов').isLength(
       {
         min: 4,
         // max: 20,
@@ -39,7 +39,7 @@ router.post(
     ),
   ],
   registration
-);
+)
 
 /**
  * @swagger
@@ -54,6 +54,6 @@ router.post(
  *       200:
  *         description: Returns a token
  */
-router.post("/login", login);
+router.post('/login', login)
 
-module.exports = router;
+module.exports = router
