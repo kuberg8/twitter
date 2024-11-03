@@ -1,6 +1,7 @@
 const WebSocket = require('ws')
 const Post = require('../models/Post')
 const User = require('../models/User')
+const jwt = require('jsonwebtoken')
 
 const wss = new WebSocket.Server({ port: process.env.WEBSOCKET_PORT || 8080 })
 
@@ -15,7 +16,23 @@ wss.on('connection', (ws) => {
     try {
       const message = isBinary ? data : data.toString()
       const parseData = JSON.parse(message)
-      const user = await User.findById(parseData.userId)
+
+      const token = parseData.token
+      if (!token) {
+        return ws.send(JSON.stringify({ error: 'Токен не предоставлен' }))
+      }
+
+      let user
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        user = await User.findById(decoded.id)
+      } catch (err) {
+        return ws.send(JSON.stringify({ error: 'Неверный токен' }))
+      }
+
+      if (!user) {
+        return ws.send(JSON.stringify({ error: 'Пользователь не найден' }))
+      }
 
       let post
 
@@ -34,11 +51,12 @@ wss.on('connection', (ws) => {
 
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(posts))
+          client.send(JSON.stringify({ posts }))
         }
       })
     } catch (error) {
       console.error('Error processing WebSocket message: ', error)
+      ws.send(JSON.stringify({ error: 'Ошибка обработки сообщения' }))
     }
   })
 

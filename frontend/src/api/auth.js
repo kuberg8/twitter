@@ -25,4 +25,12 @@ function registration(email, password, first_name, last_name) {
   });
 }
 
+/**
+ * Получение информации пользователя
+ * @param {String} id
+ */
+// function getUserInfo(id) {
+//   return axios.get(`/auth/info/${id}`);
+// }
+
 export { login, registration };

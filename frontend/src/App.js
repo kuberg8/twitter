@@ -11,7 +11,7 @@ import Alert from './components/alert/alert';
 
 function App() {
   const { alert, triggerAlert } = useAlert();
-  const { isAuth, userId } = useSelector((state) => state.user);
+  const { isAuth, userId, token } = useSelector((state) => state.user);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -43,7 +43,9 @@ function App() {
         <Route
           exact
           path="/"
-          element={withAuthRedirect(<Posts isAuth={isAuth} userId={userId} />)}
+          element={withAuthRedirect(
+            <Posts isAuth={isAuth} userId={userId} token={token} />
+          )}
         />
         <Route path="/sign-in" element={<SignIn />} />
         <Route path="/sign-up" element={<SignUp setAlert={triggerAlert} />} />

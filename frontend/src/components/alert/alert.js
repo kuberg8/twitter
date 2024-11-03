@@ -9,6 +9,7 @@ const AlertComponent = ({ text, type, show }) => (
       alignItems: 'center',
       right: '10px',
       top: '10px',
+      zIndex: '100',
       maxWidth: 'calc(100vw - 20px)',
       transition: '0.4s',
       opacity: show ? '1' : '0',

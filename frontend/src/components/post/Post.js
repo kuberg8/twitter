@@ -26,7 +26,7 @@ export default function ActionAreaCard({ post, deletePost, setEdit, isOwner }) {
         }}
       >
         <Typography gutterBottom component="div">
-          {post.user.first_name} {post.user.last_name}
+          {post.user?.first_name} {post.user?.last_name}
         </Typography>
         <Typography
           variant="body1"

@@ -2,14 +2,13 @@ const User = require('../models/User')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { validationResult } = require('express-validator')
-const { secret } = require('../config')
 
 const generateAccessToken = (id) => {
   const payload = {
     id,
   }
 
-  return jwt.sign(payload, secret, { expiresIn: '24h' })
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' })
 }
 
 class AuthController {
@@ -69,6 +68,33 @@ class AuthController {
       res.status(400).json({ message: 'Ошибка авторизации' })
     }
   }
+
+  // async getUserInfo(req, res) {
+  //   try {
+  //     const { id } = req.params
+  //     const user = await User.findById(id)
+
+  //     if (!user) {
+  //       return res.status(404).json({ message: 'Пользователь не найден' })
+  //     }
+
+  //     return res.json({
+  //       message: 'Информация о пользователе',
+  //       user: {
+  //         id: user._id,
+  //         email: user.email,
+  //         first_name: user.first_name,
+  //         last_name: user.last_name,
+  //         createdAt: user.createdAt,
+  //       },
+  //     })
+  //   } catch (err) {
+  //     console.log(err)
+  //     res
+  //       .status(500)
+  //       .json({ message: 'Ошибка при получении информации о пользователе' })
+  //   }
+  // }
 }
 
 module.exports = new AuthController()

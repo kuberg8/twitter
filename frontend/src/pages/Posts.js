@@ -51,18 +51,23 @@ export default function Index(props) {
   }, []);
 
   const handleNewPost = ({ data }) => {
-    const newPosts = JSON.parse(data);
-    setPosts((prevPosts) => {
-      if (
-        newPosts.length > prevPosts.length &&
-        newPosts[newPosts.length - 1].user !== props.userId
-      ) {
-        const audio = new Audio(smsAudio);
-        audio.play();
-      }
-      return newPosts;
-    });
-    scrollToBottom();
+    const { error, posts: newPosts } = JSON.parse(data);
+
+    if (error || !newPosts) {
+      Promise.reject(new Error(error || 'Ошибка получения постов'));
+    } else {
+      setPosts((prevPosts) => {
+        if (
+          newPosts.length > prevPosts.length &&
+          newPosts[newPosts.length - 1].user !== props.userId
+        ) {
+          const audio = new Audio(smsAudio);
+          audio.play();
+        }
+        return newPosts;
+      });
+      scrollToBottom();
+    }
   };
 
   const reconnectWebSocket = async () => {
@@ -81,6 +86,7 @@ export default function Index(props) {
           JSON.stringify({
             message,
             userId: props.userId,
+            token: props.token,
             postId: editPost?._id,
           })
         );
