@@ -1,19 +1,17 @@
-import React, { useReducer, useEffect } from 'react';
-import rootReducer from './reducers/rootReducer';
+import React, { useEffect } from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { withAuthRedirect } from './hoc/withAuthRedirect';
+import { useSelector } from 'react-redux';
 import { useAlert } from './context/AlertContext';
-// Pages
-import SingIn from './pages/SingIn';
-import SingUp from './pages/SingUp';
+import SignIn from './pages/SignIn';
+import SignUp from './pages/SignUp';
 import Posts from './pages/Posts';
 import NotFound from './pages/NotFound';
-
 import Alert from './components/alert/alert';
 
 function App() {
-  const [state, dispatch] = useReducer(rootReducer, { user: {} });
   const { alert, triggerAlert } = useAlert();
+  const { isAuth, userId } = useSelector((state) => state.user);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,12 +24,6 @@ function App() {
         reason.message;
 
       triggerAlert(error, 'error');
-
-      if (reason?.response?.status === 403) {
-        dispatch({ type: 'LOGOUT' });
-        localStorage.clear();
-        navigate('/sing-in');
-      }
     };
 
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
@@ -42,38 +34,21 @@ function App() {
         handleUnhandledRejection
       );
     };
-  }, [triggerAlert, navigate]);
-
-  const setUserData = (userId, token) => {
-    dispatch({
-      type: 'LOGIN',
-      payload: { userId },
-    });
-
-    localStorage.setItem('token', token);
-    localStorage.setItem('userId', userId);
-  };
+  }, [navigate, triggerAlert]);
 
   return (
     <>
+      <Alert show={alert.show} text={alert.text} type={alert.type} />
       <Routes>
         <Route
           exact
           path="/"
-          element={withAuthRedirect(
-            <Posts isAuth={state.user.isAuth} userId={state.user.userId} />
-          )}
+          element={withAuthRedirect(<Posts isAuth={isAuth} userId={userId} />)}
         />
-        <Route path="/sing-in" element={<SingIn setUserData={setUserData} />} />
-        <Route path="/sing-up" element={<SingUp setAlert={triggerAlert} />} />
+        <Route path="/sign-in" element={<SignIn />} />
+        <Route path="/sign-up" element={<SignUp setAlert={triggerAlert} />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-
-      <Alert
-        show={alert.alertShow}
-        type={alert.alertType}
-        text={alert.alertText}
-      />
     </>
   );
 }

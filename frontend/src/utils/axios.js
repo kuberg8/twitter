@@ -26,7 +26,7 @@ instance.interceptors.request.use((request) => {
 //     if (response && response.status === 403) {
 //       store.dispatch({ type: 'LOGOUT' });
 //       localStorage.clear();
-//       navigate('/sing-in');
+//       navigate('/sign-in');
 //     }
 
 //     return Promise.reject(error);

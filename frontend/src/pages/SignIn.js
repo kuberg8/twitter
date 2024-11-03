@@ -17,11 +17,13 @@ import { validation } from '../utils/validation';
 import Input from '../components/input/Input';
 
 import { login } from '../api/auth';
+import { useDispatch } from 'react-redux';
+import { login as loginAction } from '../store/userSlice';
 import { useNavigate } from 'react-router-dom';
 
 const theme = createTheme();
 
-const SingInFormRender = ({ submitError, handleSubmit, submitting }) => (
+const SignInFormRender = ({ submitError, handleSubmit, submitting }) => (
   <form onSubmit={handleSubmit} style={{ width: '100%', marginTop: '10px' }}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
@@ -49,7 +51,7 @@ const SingInFormRender = ({ submitError, handleSubmit, submitting }) => (
     <Grid container>
       <Grid item xs />
       <Grid item>
-        <Link href="/sing-up" variant="body2">
+        <Link href="/sign-up" variant="body2">
           {"Don't have an account? Sign Up"}
         </Link>
       </Grid>
@@ -57,14 +59,15 @@ const SingInFormRender = ({ submitError, handleSubmit, submitting }) => (
   </form>
 );
 
-function SignIn({ setUserData }) {
+function SignIn() {
+  const dispatch = useDispatch();
   const history = useNavigate();
 
   const onSubmit = async ({ email, password }) => {
     try {
       const { data } = await login(email, password);
 
-      setUserData(data.user_id, data.token);
+      dispatch(loginAction({ userId: data.user_id, token: data.token }));
       history('/');
     } catch ({ response }) {
       return { [FORM_ERROR]: response.data.message };
@@ -92,7 +95,7 @@ function SignIn({ setUserData }) {
 
           <Form
             onSubmit={onSubmit}
-            render={SingInFormRender}
+            render={SignInFormRender}
             validate={(values) => validation(values, ['email', 'password'])}
           />
         </Box>

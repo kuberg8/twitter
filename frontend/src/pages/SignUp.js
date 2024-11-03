@@ -20,7 +20,7 @@ import { useNavigate } from 'react-router-dom';
 
 const theme = createTheme();
 
-const SingUpFormRender = ({ submitError, handleSubmit, submitting }) => (
+const SignUpFormRender = ({ submitError, handleSubmit, submitting }) => (
   <form onSubmit={handleSubmit} style={{ width: '100%', marginTop: '10px' }}>
     <Grid container spacing={2}>
       <Grid item xs={12} sm={6}>
@@ -57,7 +57,7 @@ const SingUpFormRender = ({ submitError, handleSubmit, submitting }) => (
     )}
     <Grid container justifyContent="flex-end">
       <Grid item>
-        <Link href="/sing-in" variant="body2">
+        <Link href="/sign-in" variant="body2">
           Already have an account? Sign in
         </Link>
       </Grid>
@@ -80,7 +80,7 @@ export default function SignUp(props) {
       );
 
       props.setAlert(data.message);
-      history('/sing-in');
+      history('/sign-in');
     } catch ({ response }) {
       return { [FORM_ERROR]: response.data.message };
     }
@@ -107,7 +107,7 @@ export default function SignUp(props) {
 
           <Form
             onSubmit={onSubmit}
-            render={SingUpFormRender}
+            render={SignUpFormRender}
             validate={(values) =>
               validation(values, [
                 'first_name',
