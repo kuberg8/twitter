@@ -8,7 +8,7 @@ import { getPosts, deletePost } from '../api/posts';
 import { logout } from '../store/userSlice';
 import { useDispatch } from 'react-redux';
 
-const WS_URL = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8080';
+const WS_URL = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:3000';
 
 export default function Index(props) {
   const [posts, setPosts] = useState([]);

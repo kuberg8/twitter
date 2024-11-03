@@ -1,8 +1,8 @@
 const express = require('express')
 const cors = require('cors')
 const mongoose = require('mongoose')
+const WebSocket = require('./websocket/websocket')
 require('dotenv').config()
-require('./websocket/websocket')
 
 // swagger
 const swaggerUi = require('swagger-ui-express')
@@ -39,9 +39,10 @@ mongoose.set('strictQuery', true)
 mongoose
   .connect(mongoURL)
   .then(() => {
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Server port - ${PORT}`)
-      console.log(`Websocket port - ${process.env.WEBSOCKET_PORT}`)
     })
+
+    WebSocket(server)
   })
   .catch((err) => console.log(err))
