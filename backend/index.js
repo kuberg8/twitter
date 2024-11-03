@@ -14,6 +14,13 @@ const swaggerDocs = swaggerJsDoc(swaggerDocument)
 const authRoutes = require('./routes/authRoutes')
 const postRoutes = require('./routes/postsRoutes')
 
+const corsOptions = {
+  origin: '*', // URL клиента или '*' для разрешения всех
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true, // Разрешить отправку куки
+  optionsSuccessStatus: 204, // Для некоторых старых браузеров
+}
+
 // app
 const app = express()
 const mongoURL = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/test'
@@ -22,7 +29,7 @@ const PORT = process.env.PORT || 3000
 // middleware
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs))
 app.use(express.json())
-app.use(cors())
+app.use(cors(corsOptions))
 
 // use routes
 app.use('/auth', authRoutes)
