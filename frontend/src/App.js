@@ -47,8 +47,16 @@ function App() {
             <Posts isAuth={isAuth} userId={userId} token={token} />
           )}
         />
-        <Route path="/sign-in" element={<SignIn />} />
-        <Route path="/sign-up" element={<SignUp setAlert={triggerAlert} />} />
+        <Route
+          path="/sign-in"
+          element={withAuthRedirect(<SignIn isAuth={isAuth} />)}
+        />
+        <Route
+          path="/sign-up"
+          element={withAuthRedirect(
+            <SignUp setAlert={triggerAlert} isAuth={isAuth} />
+          )}
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
