@@ -25,7 +25,7 @@ COPY --from=0 /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Открываем порт
-EXPOSE 8080
+EXPOSE 3001
 
 # Запускаем Nginx
 CMD ["nginx", "-g", "daemon off;"]

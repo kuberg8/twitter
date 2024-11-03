@@ -75,9 +75,11 @@ export default function Index(props) {
   };
 
   const reconnectWebSocket = async () => {
-    wsRef.current = new WebSocket(WS_URL);
-    wsRef.current.addEventListener('message', handleNewPost);
-    await fetchPosts();
+    if (wsRef.current.readyState !== WebSocket.OPEN) {
+      wsRef.current = new WebSocket(WS_URL);
+      wsRef.current.addEventListener('message', handleNewPost);
+      await fetchPosts();
+    }
   };
 
   const savePost = async () => {
