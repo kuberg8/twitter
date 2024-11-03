@@ -5,6 +5,8 @@ import Button from '@mui/material/Button';
 import Post from '../components/post/Post';
 import smsAudio from '../assets/sms.mp3';
 import { getPosts, deletePost } from '../api/posts';
+import { logout } from '../store/userSlice';
+import { useDispatch } from 'react-redux';
 
 const WS_URL = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8080';
 
@@ -15,6 +17,7 @@ export default function Index(props) {
   const [editPost, setEditPost] = useState(null);
   const chatRef = useRef(null);
   const wsRef = useRef(null);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchInitialPosts = async () => {
@@ -55,6 +58,7 @@ export default function Index(props) {
 
     if (error || !newPosts) {
       Promise.reject(new Error(error || 'Ошибка получения постов'));
+      dispatch(logout());
     } else {
       setPosts((prevPosts) => {
         if (
