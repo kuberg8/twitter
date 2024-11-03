@@ -2,7 +2,7 @@ const WebSocket = require('ws')
 const Post = require('../models/Post')
 const User = require('../models/User')
 
-const wss = new WebSocket.Server({ port: 8080 })
+const wss = new WebSocket.Server({ port: process.env.WEBSOCKET_PORT || 8080 })
 
 wss.on('connection', (ws) => {
   console.log('A new client connected')

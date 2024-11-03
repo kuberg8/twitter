@@ -3,137 +3,143 @@ import Box from '@mui/material/Box';
 import { LoadingButton } from '@mui/lab';
 import Button from '@mui/material/Button';
 import Post from '../components/post/Post';
-
 import smsAudio from '../assets/sms.mp3';
-
 import { getPosts, deletePost } from '../api/posts';
 
-let ws = new WebSocket('ws://localhost:8080');
+const WS_URL = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8080';
 
 export default function Index(props) {
   const [posts, setPosts] = useState([]);
   const [value, setValue] = useState('');
   const [saveLoading, setSaveLoading] = useState(false);
   const [editPost, setEditPost] = useState(null);
-
   const chatRef = useRef(null);
+  const wsRef = useRef(null);
 
   useEffect(() => {
-    fetchPost();
-    let postCount = posts.length;
-
-    const messageHandler = ({ data }) => {
-      const newPosts = JSON.parse(data);
-
+    const fetchInitialPosts = async () => {
       try {
-        if (
-          newPosts[newPosts.length - 1].user !== props.userId &&
-          newPosts.length > postCount
-        ) {
-          const audio = new Audio(smsAudio);
-          audio.play();
-        }
-      } catch (e) {
-        Promise.reject(e);
+        const { data } = await getPosts();
+        setPosts(data);
+        scrollToBottom();
+      } catch (error) {
+        console.error('Failed to fetch posts:', error);
       }
-
-      setPosts(newPosts);
-      postCount = newPosts.length;
-      scrollToBottom();
     };
 
-    ws.addEventListener('message', messageHandler);
+    wsRef.current = new WebSocket(WS_URL);
+    const messageHandler = handleNewPost;
 
-    const reconectWbSocket = async () => {
-      await fetchPost();
-      ws = new WebSocket('ws://localhost:8080');
-      ws.addEventListener('message', messageHandler);
-    };
+    wsRef.current.addEventListener('message', messageHandler);
+    fetchInitialPosts();
 
     const handleVisibilityChange = () => {
-      if (!document.hidden && document.hasFocus()) {
-        reconectWbSocket();
+      if (!document.hidden) {
+        reconnectWebSocket();
       }
     };
 
-    // переподключение к сокетам
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', () => {
-      reconectWbSocket();
-    });
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', reconnectWebSocket);
+
+    return () => {
+      wsRef.current.removeEventListener('message', messageHandler);
+      wsRef.current.close();
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', reconnectWebSocket);
+    };
   }, []);
 
-  const save = async () => {
+  const handleNewPost = ({ data }) => {
+    const newPosts = JSON.parse(data);
+    setPosts((prevPosts) => {
+      if (
+        newPosts.length > prevPosts.length &&
+        newPosts[newPosts.length - 1].user !== props.userId
+      ) {
+        const audio = new Audio(smsAudio);
+        audio.play();
+      }
+      return newPosts;
+    });
+    scrollToBottom();
+  };
+
+  const reconnectWebSocket = async () => {
+    wsRef.current = new WebSocket(WS_URL);
+    wsRef.current.addEventListener('message', handleNewPost);
+    await fetchPosts();
+  };
+
+  const savePost = async () => {
     setSaveLoading(true);
+    const message = editPost ? editPost.message.trim() : value.trim();
 
     try {
-      if (editPost) {
-        // await updatePost(editPost._id, editPost.message);
-        if (editPost.message) {
-          ws.send(
-            JSON.stringify({
-              message: editPost.message.trim(),
-              userId: props.userId,
-              postId: editPost._id,
-            })
-          );
-        }
-        setEditPost(null);
-      } else {
-        // await createPost(value);
-        value &&
-          ws.send(
-            JSON.stringify({ message: value.trim(), userId: props.userId })
-          );
-        setValue('');
+      if (message) {
+        wsRef.current.send(
+          JSON.stringify({
+            message,
+            userId: props.userId,
+            postId: editPost?._id,
+          })
+        );
+        if (!editPost) setValue('');
       }
-    } catch (err) {
-      Promise.reject(err);
+      setEditPost(null);
+    } catch (error) {
+      Promise.reject(error);
+      console.error(error);
+    } finally {
+      setSaveLoading(false);
     }
-
-    setSaveLoading(false);
   };
 
-  const removePost = (id) => {
-    deletePost(id).then(() => fetchPost());
+  const removePost = async (id) => {
+    try {
+      await deletePost(id);
+      await fetchPosts();
+    } catch (error) {
+      Promise.reject(error);
+      console.error(error);
+    }
   };
 
-  const fetchPost = async () => {
+  const fetchPosts = async () => {
     try {
       const { data } = await getPosts();
       setPosts(data);
       scrollToBottom();
-    } catch (err) {
-      Promise.reject(err);
+    } catch (error) {
+      Promise.reject(error);
+      console.error(error);
     }
   };
 
   const scrollToBottom = () => {
-    setTimeout(() => {
-      const elementOffset =
-        chatRef.current.scrollHeight - chatRef.current.clientHeight + 100;
-
-      chatRef.current.scrollTo({
-        top: elementOffset,
-        behavior: 'smooth',
-      });
-    }, 100);
+    if (chatRef.current) {
+      setTimeout(() => {
+        const elementOffset =
+          chatRef.current.scrollHeight - chatRef.current.clientHeight;
+        chatRef.current.scrollTo({ top: elementOffset, behavior: 'smooth' });
+      }, 100);
+    }
   };
 
   return (
     <Box
-      style={{
+      sx={{
         position: 'fixed',
-        bottom: '0',
+        bottom: 0,
         height: '100%',
         width: '100vw',
-        margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
       }}
     >
       <div
+        ref={chatRef}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -142,7 +148,6 @@ export default function Index(props) {
           overflow: 'auto',
           padding: '20px',
         }}
-        ref={chatRef}
       >
         {posts.map((post) => (
           <Post
@@ -160,10 +165,7 @@ export default function Index(props) {
           value={editPost ? editPost.message : value}
           onChange={({ target }) =>
             editPost
-              ? setEditPost({
-                  ...editPost,
-                  message: target.value,
-                })
+              ? setEditPost({ ...editPost, message: target.value })
               : setValue(target.value)
           }
           style={{
@@ -173,25 +175,16 @@ export default function Index(props) {
             resize: 'none',
           }}
         />
-
-        <div
-          style={{
-            display: 'flex',
-            width: '100%',
-            maxWidth: '100vw',
-            columnGap: '20px',
-          }}
-        >
+        <div style={{ display: 'flex', width: '100%', columnGap: '20px' }}>
           <LoadingButton
             loading={saveLoading}
             variant="contained"
-            onClick={save}
+            onClick={savePost}
             fullWidth
             size="large"
           >
             {editPost ? 'Сохранить' : 'Отправить'}
           </LoadingButton>
-
           {editPost && (
             <Button
               onClick={() => setEditPost(null)}

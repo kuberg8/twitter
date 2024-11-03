@@ -33,7 +33,8 @@ mongoose
   .connect(mongoURL)
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Server has been started on port - ${PORT}`)
+      console.log(`Server port - ${PORT}`)
+      console.log(`Websocket port - ${process.env.WEBSOCKET_PORT}`)
     })
   })
   .catch((err) => console.log(err))
