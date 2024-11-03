@@ -55,6 +55,7 @@ export default function Index(props) {
 
     if (error || !newPosts) {
       Promise.reject(new Error(error || 'Ошибка получения постов'));
+      fetchPosts();
     } else {
       setPosts((prevPosts) => {
         if (

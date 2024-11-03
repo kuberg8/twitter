@@ -30,7 +30,7 @@ const SignUpFormRender = ({ submitError, handleSubmit, submitting }) => (
         <Input name="last_name" label="Last Name" />
       </Grid>
       <Grid item xs={12}>
-        <Input name="email" label="Email" />
+        <Input name="email" label="Email" autoComplete="username" />
       </Grid>
       <Grid item xs={12}>
         <Input

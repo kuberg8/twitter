@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
+const User = require('../models/User')
 
-module.exports = function (req, res, next) {
+module.exports = async function (req, res, next) {
   if (req.method == 'OPTIONS') {
     next()
   }
@@ -13,6 +14,11 @@ module.exports = function (req, res, next) {
     }
 
     const decodedData = jwt.verify(token, process.env.JWT_SECRET)
+
+    const user = await User.findById(decodedData.id)
+    if (!user) {
+      return res.status(403).json({ message: 'Пользователь не авторизован' })
+    }
     req.user = decodedData
 
     next()

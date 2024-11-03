@@ -27,10 +27,15 @@ const SignInFormRender = ({ submitError, handleSubmit, submitting }) => (
   <form onSubmit={handleSubmit} style={{ width: '100%', marginTop: '10px' }}>
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <Input name="email" label="Email" />
+        <Input name="email" label="Email" autoComplete="username" />
       </Grid>
       <Grid item xs={12}>
-        <Input name="password" label="Password" type="password" />
+        <Input
+          name="password"
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+        />
       </Grid>
     </Grid>
 
