@@ -59,19 +59,27 @@ export default function Index(props) {
     if (error || !newPosts) {
       Promise.reject(new Error(error || 'Ошибка получения постов'));
       dispatch(logout());
-    } else {
-      setPosts((prevPosts) => {
-        if (
-          newPosts.length > prevPosts.length &&
-          newPosts[newPosts.length - 1].user !== props.userId
-        ) {
-          const audio = new Audio(smsAudio);
-          audio.play();
-        }
-        return newPosts;
-      });
-      scrollToBottom();
+      return;
     }
+
+    setPosts((prevPosts) => {
+      if (
+        newPosts.length > prevPosts.length &&
+        newPosts[newPosts.length - 1].user !== props.userId
+      ) {
+        // Воспроизводим звук только после нажатия кнопки
+        playNotificationSound();
+      }
+      return newPosts;
+    });
+    scrollToBottom();
+  };
+
+  const playNotificationSound = () => {
+    const audio = new Audio(smsAudio);
+    audio
+      .play()
+      .catch((error) => console.error('Audio playback failed:', error));
   };
 
   const reconnectWebSocket = async () => {
@@ -101,7 +109,7 @@ export default function Index(props) {
       setEditPost(null);
     } catch (error) {
       Promise.reject(error);
-      console.error(error);
+      console.error('Error while saving post:', error);
     } finally {
       setSaveLoading(false);
     }
@@ -113,7 +121,7 @@ export default function Index(props) {
       await fetchPosts();
     } catch (error) {
       Promise.reject(error);
-      console.error(error);
+      console.error('Error while removing post:', error);
     }
   };
 
@@ -124,7 +132,7 @@ export default function Index(props) {
       scrollToBottom();
     } catch (error) {
       Promise.reject(error);
-      console.error(error);
+      console.error('Error while fetching posts:', error);
     }
   };
 
