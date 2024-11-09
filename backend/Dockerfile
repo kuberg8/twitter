@@ -19,4 +19,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Запускаем сервер
-CMD ["node", "index.js"]
+CMD ["npm", "run", "dev"]

@@ -12,20 +12,23 @@ RUN npm install
 # Копируем все остальные файлы
 COPY . .
 
-# Собираем приложение
-RUN npm run build
+# # Собираем приложение
+# RUN npm run build
 
-# Устанавливаем Nginx для обслуживания статических файлов
-FROM nginx:alpine
+# # Устанавливаем Nginx для обслуживания статических файлов
+# FROM nginx:alpine
 
-# Копируем собранные файлы в директорию Nginx
-COPY --from=0 /app/build /usr/share/nginx/html
+# # Копируем собранные файлы в директорию Nginx
+# COPY --from=0 /app/build /usr/share/nginx/html
 
-# Копируем конфигурацию Nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# # Копируем конфигурацию Nginx
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Открываем порт
+# Открываем порт, на котором будет работать приложение
 EXPOSE 3001
 
-# Запускаем Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# # Запускаем Nginx
+# CMD ["nginx", "-g", "daemon off;"]
+
+# Запускаем приложение
+CMD ["npm", "run", "start"]

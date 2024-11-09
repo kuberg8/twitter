@@ -6,7 +6,7 @@ module.exports = async function (req, res, next) {
   }
 
   try {
-    const [, token] = req.headers.authorization.split(' ')
+    const [, token] = req.headers.authorization?.split(' ') || []
 
     if (!token) {
       return res.status(403).json({ message: 'Пользователь не авторизован' })
