@@ -24,7 +24,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build && node postBuild.js",
+    "build": "react-scripts build && node postbuild.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint '**/*.{js,jsx}'",
