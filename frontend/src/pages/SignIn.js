@@ -8,6 +8,7 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import Link from '@mui/material/Link';
+import { Link as RouterLink } from 'react-router-dom';
 import Grid from '@mui/material/Grid';
 
 // FORM
@@ -56,7 +57,7 @@ const SignInFormRender = ({ submitError, handleSubmit, submitting }) => (
     <Grid container>
       <Grid item xs />
       <Grid item>
-        <Link href="/sign-up" variant="body2">
+        <Link component={RouterLink} to="/sign-up">
           {"Don't have an account? Sign Up"}
         </Link>
       </Grid>

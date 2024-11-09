@@ -2,6 +2,7 @@ import * as React from 'react';
 import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
 import Link from '@mui/material/Link';
+import { Link as RouterLink } from 'react-router-dom';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -57,7 +58,7 @@ const SignUpFormRender = ({ submitError, handleSubmit, submitting }) => (
     )}
     <Grid container justifyContent="flex-end">
       <Grid item>
-        <Link href="/sign-in" variant="body2">
+        <Link component={RouterLink} to="/sign-in">
           Already have an account? Sign in
         </Link>
       </Grid>
