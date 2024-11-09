@@ -5,7 +5,7 @@
 ## Установка
 
 ### `npm install`
-# или
+## или
 ### `yarn install`
 
 ## Настройка окружения
@@ -31,13 +31,13 @@
 ### `brew install mongodb-community`
 
 ## Запустите сервер MongoDB:
-# На Ubuntu
+## На Ubuntu
 ### `sudo service mongodb start`
 
-# На macOS
+## На macOS
 ### `brew services start mongodb/brew/mongodb-community`
 
 ## Запуск проекта
 ### `npm start`
-# или
+## или
 ### `yarn start`
