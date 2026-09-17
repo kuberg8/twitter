@@ -1,3 +1,6 @@
+import { useSearchParams } from 'react-router-dom';
+import ChatNavigation, { userName } from '../components/ChatNavigation';
+import { getChatUser } from '../api/chats';
 import PushNotifications from '../components/PushNotifications';
 import { disablePush } from '../utils/pushNotifications';
 import useMessageSound from '../hooks/useMessageSound';
@@ -13,14 +16,54 @@ import { getPosts, deletePost, createPost, updatePost } from '../api/posts';
 import { logout } from '../store/userSlice';
 import { useDispatch } from 'react-redux';
 const WS_URL = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:3000';
-export default function Posts({ userId }) {
-  const {
-    enabled: soundEnabled,
-    toggleSound,
-    notify,
-  } = useMessageSound(userId);
+export default function Posts(props) {
+  const [params, setParams] = useSearchParams();
+  const peerId = params.get('chat') || '';
+  const drafts = useRef(Object.create(null));
+  const sound = useMessageSound(props.userId, peerId);
+  return (
+    <Conversation
+      key={peerId || 'general'}
+      {...props}
+      peerId={peerId}
+      drafts={drafts}
+      sound={sound}
+      onSelect={(id) => setParams(id ? { chat: id } : {})}
+    />
+  );
+}
+
+export function Conversation({
+  userId,
+  token,
+  peerId = '',
+  onSelect,
+  drafts,
+  sound,
+}) {
+  const { enabled: soundEnabled, toggleSound, notify } = sound;
+  const [peer, setPeer] = useState(null);
+  const [peerError, setPeerError] = useState('');
+  const [revision, setRevision] = useState(0);
+  const active = useRef(true);
+  const requestVersion = useRef(0);
+  useEffect(() => {
+    active.current = true;
+    if (peerId)
+      getChatUser(peerId)
+        .then(({ data }) => {
+          if (active.current) setPeer(data);
+        })
+        .catch(() => {
+          if (active.current)
+            setPeerError('Собеседник недоступен. Выберите другой чат.');
+        });
+    return () => {
+      active.current = false;
+    };
+  }, [peerId]);
   const [posts, setPosts] = useState([]);
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(drafts.current[peerId] || '');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,19 +72,23 @@ export default function Posts({ userId }) {
   const inputRef = useRef(null);
   const dispatch = useDispatch();
   const fetchPosts = useCallback(async () => {
+    const version = ++requestVersion.current;
     try {
-      const { data } = await getPosts();
+      const { data } = await getPosts(peerId);
+      if (!active.current || version !== requestVersion.current) return;
       notify(data);
       setPosts(data);
       setError('');
     } catch {
+      if (!active.current || version !== requestVersion.current) return;
       setError(
         'Не удалось загрузить сообщения. Проверьте соединение и попробуйте ещё раз.'
       );
     } finally {
-      setLoading(false);
+      if (active.current && version === requestVersion.current)
+        setLoading(false);
     }
-  }, [notify]);
+  }, [notify, peerId]);
   useEffect(() => {
     let disposed = false;
     let socket;
@@ -51,23 +98,30 @@ export default function Posts({ userId }) {
       if (disposed) return;
       socket = new WebSocket(WS_URL);
       socket.onopen = () => {
-        setConnected(true);
-        fetchPosts();
+        socket.send(JSON.stringify({ type: 'auth', token }));
       };
       socket.onmessage = ({ data }) => {
         try {
           const payload = JSON.parse(data);
-          if (Array.isArray(payload.posts)) {
-            notify(payload.posts);
-            setPosts(payload.posts);
+          if (payload.type === 'ready') {
+            setConnected(true);
+            fetchPosts();
+          }
+          if (payload.type === 'posts:changed') {
+            setRevision((value) => value + 1);
+            if ((payload.peerId || '') === peerId) fetchPosts();
           }
         } catch {
           setError('Не удалось получить обновление. Обновите ленту.');
         }
       };
-      socket.onclose = () => {
+      socket.onclose = (event) => {
         if (!disposed) {
           setConnected(false);
+          if (event.code === 4001) {
+            dispatch(logout());
+            return;
+          }
           retry = setTimeout(connect, 3000);
         }
       };
@@ -75,24 +129,29 @@ export default function Posts({ userId }) {
     };
     connect();
     // REST operations from other clients are refreshed even without socket events.
-    const refresh = setInterval(fetchPosts, 15000);
+    const refresh = setInterval(() => {
+      fetchPosts();
+      setRevision((value) => value + 1);
+    }, 15000);
     return () => {
       disposed = true;
       clearTimeout(retry);
       clearInterval(refresh);
       socket.close();
     };
-  }, [fetchPosts, notify]);
+  }, [fetchPosts, peerId, token, dispatch]);
   const save = async (event) => {
     event?.preventDefault();
-    if (!value.trim() || saving) return;
+    if (!value.trim() || saving || (!!peerId && !peer)) return;
     setSaving(true);
     setError('');
     try {
       if (editPost) await updatePost(editPost._id, value.trim());
-      else await createPost(value.trim());
-      setValue('');
+      else await createPost(value.trim(), peerId || null);
+      if (!editPost) drafts.current[peerId] = '';
+      setValue(drafts.current[peerId] || '');
       setEditPost(null);
+      setRevision((value) => value + 1);
       await fetchPosts();
     } catch (err) {
       setError(
@@ -108,8 +167,9 @@ export default function Posts({ userId }) {
       await deletePost(id);
       if (editPost?._id === id) {
         setEditPost(null);
-        setValue('');
+        setValue(drafts.current[peerId] || '');
       }
+      setRevision((value) => value + 1);
       await fetchPosts();
     } catch {
       setError('Не удалось удалить сообщение. Попробуйте ещё раз.');
@@ -124,10 +184,11 @@ export default function Posts({ userId }) {
           </span>
           twitter<span className="brand-dot">.</span>
         </a>
-        <div className="sidebar-label">ВАШЕ ПРОСТРАНСТВО</div>
-        <div className="nav-active">
-          <ForumRoundedIcon fontSize="small" /> Общий чат <span>01</span>
-        </div>
+        <ChatNavigation
+          peerId={peerId}
+          onSelect={onSelect}
+          revision={revision}
+        />
         <div className="sidebar-note">
           <span>✦</span>
           <h3>Есть что сказать?</h3>
@@ -155,9 +216,14 @@ export default function Posts({ userId }) {
           <div>
             <span className="eyebrow">РАЗГОВОРЫ, КОТОРЫЕ ОБЪЕДИНЯЮТ</span>
             <h1>
-              Общий чат<span className="heading-dot">.</span>
+              {peerId ? (peer ? userName(peer) : 'Личный чат') : 'Общий чат'}
+              <span className="heading-dot">.</span>
             </h1>
-            <p>Делитесь мыслями. Будьте на связи.</p>
+            <p>
+              {peerId
+                ? 'Переписка видна только вам и собеседнику.'
+                : 'Делитесь мыслями. Будьте на связи.'}
+            </p>
           </div>
           <span className={`connection ${connected ? 'online' : ''}`}>
             <i />
@@ -168,17 +234,28 @@ export default function Posts({ userId }) {
           <div className="composer-label">
             <span className="avatar own">Я</span>
             <label htmlFor="message">
-              {editPost ? 'Редактирование сообщения' : 'Что у вас нового?'}
+              {editPost
+                ? 'Редактирование сообщения'
+                : peerId
+                  ? 'Личное сообщение'
+                  : 'Что у вас нового?'}
             </label>
           </div>
           <textarea
             id="message"
             ref={inputRef}
-            placeholder="Поделитесь мыслью или начните разговор…"
+            placeholder={
+              peerId
+                ? 'Напишите сообщение…'
+                : 'Поделитесь мыслью или начните разговор…'
+            }
             value={value}
-            disabled={saving}
+            disabled={saving || !!peerError}
             maxLength={5000}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              if (!editPost) drafts.current[peerId] = e.target.value;
+            }}
             onKeyDown={(e) => {
               if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') save(e);
             }}
@@ -195,7 +272,7 @@ export default function Posts({ userId }) {
                   disabled={saving}
                   onClick={() => {
                     setEditPost(null);
-                    setValue('');
+                    setValue(drafts.current[peerId] || '');
                   }}
                 >
                   Отмена
@@ -204,7 +281,7 @@ export default function Posts({ userId }) {
               <Button
                 type="submit"
                 variant="contained"
-                disabled={!value.trim() || saving}
+                disabled={!value.trim() || saving || (!!peerId && !peer)}
                 endIcon={
                   saving ? (
                     <CircularProgress size={16} />
@@ -218,6 +295,11 @@ export default function Posts({ userId }) {
             </div>
           </div>
         </form>
+        {peerError && (
+          <div className="error-panel" role="alert">
+            {peerError}
+          </div>
+        )}
         {error && (
           <div className="error-panel" role="alert">
             {error}
@@ -283,8 +365,8 @@ export default function Posts({ userId }) {
       </main>
       <aside className="context-panel">
         <div className="context-symbol">✳</div>
-        <span className="eyebrow">ОБЩИЙ ЧАТ</span>
-        <h2>Разговор начинается с вас.</h2>
+        <span className="eyebrow">{peerId ? 'ЛИЧНЫЙ ЧАТ' : 'ОБЩИЙ ЧАТ'}</span>
+        <h2>{peerId ? 'Только между вами.' : 'Разговор начинается с вас.'}</h2>
         <p>Это общее пространство для мыслей, вопросов и маленьких открытий.</p>
         <hr />
         <h3>Давайте беречь общение</h3>

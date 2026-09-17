@@ -1,3 +1,4 @@
+import { installZoomLock } from './utils/zoomLock';
 import { disablePush } from './utils/pushNotifications';
 import React, { useEffect } from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
@@ -14,6 +15,7 @@ function App() {
   const { alert, triggerAlert } = useAlert();
   const { isAuth, userId, token } = useSelector((state) => state.user);
   const navigate = useNavigate();
+  useEffect(() => installZoomLock(), []);
 
   useEffect(() => {
     if (!isAuth) disablePush({ server: false }).catch(() => {});

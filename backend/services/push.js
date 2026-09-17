@@ -52,7 +52,7 @@ async function sendPostNotifications(post) {
   if (!config) return
   try {
     const subscriptions = await Subscription.find({
-      user: { $ne: post.user._id },
+      user: post.recipient || { $ne: post.user._id },
     }).lean()
     const name =
       [post.user.first_name, post.user.last_name].filter(Boolean).join(' ') ||
@@ -66,6 +66,7 @@ async function sendPostNotifications(post) {
             title: name.slice(0, 100),
             body: post.message.slice(0, 160),
             postId: String(post._id),
+            peerId: post.recipient ? String(post.user._id) : null,
             recipientId: String(subscription.user),
           })
           try {

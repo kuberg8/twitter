@@ -4,16 +4,16 @@ import axios from '../utils/axios.js';
  * Получение постов
  * @return {Array} Посты
  */
-function getPosts() {
-  return axios.get('/posts');
+function getPosts(peer) {
+  return axios.get('/posts', { params: peer ? { peer } : {} });
 }
 
 /**
  * Создание поста
  * @param {String} message
  */
-function createPost(message) {
-  return axios.post('/posts', { message });
+function createPost(message, recipient = null) {
+  return axios.post('/posts', { message, recipient });
 }
 
 /**

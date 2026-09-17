@@ -75,3 +75,17 @@ test('notification click opens the chat and ignores arbitrary payload URLs', asy
   await pending
   assert.deepEqual(instance.opened, [instance.scope])
 })
+
+test('private notification click opens its own conversation', async () => {
+  const instance = worker('u1')
+  let pending
+  const peerId = '507f1f77bcf86cd799439011'
+  instance.handlers.notificationclick({
+    notification: { close() {}, data: { peerId } },
+    waitUntil: (promise) => {
+      pending = promise
+    },
+  })
+  await pending
+  assert.deepEqual(instance.opened, [`${instance.scope}?chat=${peerId}`])
+})

@@ -34,6 +34,7 @@ app.use(cors(corsOptions))
 // use routes
 app.use('/auth', authRoutes)
 app.use('/posts', postRoutes)
+app.use('/chats', require('./routes/chatRoutes'))
 app.use('/push', require('./routes/pushRoutes'))
 
 mongoose.set('strictQuery', true)

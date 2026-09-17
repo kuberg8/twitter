@@ -1,5 +1,12 @@
+import { MemoryRouter } from 'react-router-dom';
+import { getChats, getUsers, getChatUser } from '../api/chats';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render as renderUI,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Posts from './Posts';
 import { getPosts, createPost, updatePost } from '../api/posts';
@@ -10,7 +17,14 @@ jest.mock('../api/posts', () => ({
   updatePost: jest.fn(),
   deletePost: jest.fn(),
 }));
-jest.mock('react-redux', () => ({ useDispatch: () => jest.fn() }));
+const mockDispatch = jest.fn();
+jest.mock('react-redux', () => ({ useDispatch: () => mockDispatch }));
+jest.mock('../api/chats', () => ({
+  getChats: jest.fn(),
+  getUsers: jest.fn(),
+  getChatUser: jest.fn(),
+}));
+const render = (ui) => renderUI(<MemoryRouter>{ui}</MemoryRouter>);
 const message = {
   _id: 'p1',
   user: { _id: 'u1', first_name: 'Анна' },
@@ -20,6 +34,9 @@ const message = {
 const NativeWebSocket = global.WebSocket;
 beforeEach(() => {
   jest.clearAllMocks();
+  getChats.mockResolvedValue({ data: [] });
+  getUsers.mockResolvedValue({ data: [{ _id: 'peer', first_name: 'Борис' }] });
+  getChatUser.mockResolvedValue({ data: { _id: 'peer', first_name: 'Борис' } });
   global.WebSocket = class {
     close() {}
   };
@@ -64,4 +81,32 @@ test('does not send whitespace-only messages', async () => {
   fireEvent.change(screen.getByRole('textbox'), { target: { value: '   ' } });
   expect(screen.getByRole('button', { name: 'Отправить' })).toBeDisabled();
   expect(createPost).not.toHaveBeenCalled();
+});
+
+test('opens a private chat, sends to its recipient and preserves the general-chat draft', async () => {
+  createPost.mockResolvedValue({});
+  getPosts.mockImplementation((peer) =>
+    Promise.resolve({ data: peer ? [] : [message] })
+  );
+  render(<Posts userId="u1" token="token" />);
+  await screen.findByText('Привет');
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: 'Черновик общего чата' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Новый чат' }));
+  fireEvent.click(await screen.findByRole('button', { name: /Борис/ }));
+  await screen.findByRole('heading', { level: 1, name: /Борис/ });
+  await waitFor(() => expect(getPosts).toHaveBeenCalledWith('peer'));
+  expect(screen.queryByText('Привет')).not.toBeInTheDocument();
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: 'Только для Бориса' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Отправить' }));
+  await waitFor(() =>
+    expect(createPost).toHaveBeenCalledWith('Только для Бориса', 'peer')
+  );
+  await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue(''));
+  fireEvent.click(screen.getByRole('button', { name: 'Общий чат' }));
+  await screen.findByText('Привет');
+  expect(screen.getByRole('textbox')).toHaveValue('Черновик общего чата');
 });

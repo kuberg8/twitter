@@ -585,3 +585,150 @@ button:focus-visible {
 .push-settings [role='alert'] {
   color: #9a4c35;
 }
+
+html,
+body {
+  touch-action: pan-x pan-y;
+  overscroll-behavior: none;
+}
+input,
+textarea,
+select,
+.composer textarea {
+  font-size: 16px;
+}
+.chat-navigation {
+  margin-top: 32px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.chat-link {
+  border: 0;
+  background: transparent;
+  color: #526846;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 12px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+}
+.chat-link:hover {
+  background: #f0f2e9;
+}
+.chat-link.selected {
+  background: #e9eedf;
+}
+.chat-link .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.chat-link-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chat-link-text strong {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-link-text small {
+  font-size: 12px;
+  color: #88917f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24px 0 8px;
+  gap: 5px;
+}
+.chat-list-heading > span {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #89957e;
+}
+.chat-list-heading .MuiButton-root {
+  padding: 6px;
+  font-size: 12px;
+}
+.chat-list-empty,
+.chat-list-error,
+.contact-picker p {
+  font-size: 13px;
+  color: #88917f;
+  line-height: 1.6;
+  padding: 0 10px;
+}
+.chat-list-error {
+  color: #9a4c35;
+}
+.contact-results {
+  max-height: 250px;
+  overflow: auto;
+  margin: 10px 0;
+}
+.feed-header h1 {
+  overflow-wrap: anywhere;
+}
+.sidebar {
+  height: 100dvh;
+}
+@media (max-width: 700px) {
+  .sidebar {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: max(16px, env(safe-area-inset-top));
+  }
+  .chat-navigation {
+    order: 3;
+    width: 100%;
+    margin-top: 0;
+    overflow: visible;
+  }
+  .chat-navigation > .chat-link {
+    width: auto;
+    display: inline-flex;
+  }
+  .chat-list-heading {
+    margin: 8px 0;
+  }
+  .chat-list {
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+  }
+  .chat-list > .chat-link {
+    min-width: 170px;
+    max-width: 220px;
+    flex-shrink: 0;
+  }
+  .chat-list-empty {
+    margin: 0;
+  }
+  .sidebar .logout {
+    margin-left: auto;
+  }
+  .contact-picker {
+    margin: 10px 0;
+  }
+  .contact-results {
+    max-height: 210px;
+  }
+  .feed {
+    padding-bottom: max(25px, env(safe-area-inset-bottom));
+  }
+}

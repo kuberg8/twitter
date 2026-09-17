@@ -27,7 +27,7 @@ self.addEventListener('push', (event) => {
         body: payload.body || 'Новое сообщение',
         icon: new URL('logo192.png', self.registration.scope).href,
         tag: `post-${payload.postId}`,
-        data: { url: self.registration.scope },
+        data: { peerId: payload.peerId },
       });
     })()
   );
@@ -37,12 +37,18 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
     (async () => {
-      const url = self.registration.scope;
+      const target = new URL(self.registration.scope);
+      const peerId = event.notification.data?.peerId;
+      if (typeof peerId === 'string' && /^[a-f0-9]{24}$/i.test(peerId))
+        target.searchParams.set('chat', peerId);
+      const url = target.href;
       const windows = await self.clients.matchAll({
         type: 'window',
         includeUncontrolled: true,
       });
-      const existing = windows.find((client) => client.url.startsWith(url));
+      const existing = windows.find((client) =>
+        client.url.startsWith(self.registration.scope)
+      );
       if (existing) {
         await existing.navigate(url);
         return existing.focus();

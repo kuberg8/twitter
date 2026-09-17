@@ -18,7 +18,7 @@ export function createMessageTracker(userId) {
   };
 }
 
-export default function useMessageSound(userId) {
+export default function useMessageSound(userId, conversationId) {
   const [enabled, setEnabled] = useState(false);
   const audioRef = useRef(null);
   const enabledRef = useRef(false);
@@ -28,7 +28,7 @@ export default function useMessageSound(userId) {
     return () => {
       audioRef.current?.pause();
     };
-  }, [userId]);
+  }, [userId, conversationId]);
 
   const disable = useCallback(() => {
     enabledRef.current = false;

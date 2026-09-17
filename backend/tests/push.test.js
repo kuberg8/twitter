@@ -126,3 +126,53 @@ test('subscriptions can only be removed by their authenticated owner', async () 
     Subscription.deleteOne = original
   }
 })
+
+test('private notifications target only the recipient and link back to the sender', async () => {
+  const originalFind = Subscription.find
+  const originalSend = webpush.sendNotification
+  const env = { ...process.env }
+  Object.assign(process.env, {
+    VAPID_PUBLIC_KEY: 'public',
+    VAPID_PRIVATE_KEY: 'private',
+    VAPID_SUBJECT: 'https://example.com',
+  })
+  let query
+  let payload
+  Subscription.find = (filter) => {
+    query = filter
+    return {
+      lean: async () => [
+        {
+          user: 'recipient',
+          endpoint: 'https://fcm.googleapis.com/device',
+          keys: {},
+        },
+      ],
+    }
+  }
+  webpush.sendNotification = async (subscription, message) => {
+    payload = JSON.parse(message)
+  }
+  try {
+    await sendPostNotifications({
+      _id: 'post',
+      recipient: 'recipient',
+      user: { _id: 'sender', first_name: 'Автор' },
+      message: 'Личное',
+    })
+    assert.deepEqual(query, { user: 'recipient' })
+    assert.equal(payload.recipientId, 'recipient')
+    assert.equal(payload.peerId, 'sender')
+  } finally {
+    Subscription.find = originalFind
+    webpush.sendNotification = originalSend
+    for (const key of [
+      'VAPID_PUBLIC_KEY',
+      'VAPID_PRIVATE_KEY',
+      'VAPID_SUBJECT',
+    ]) {
+      if (env[key] === undefined) delete process.env[key]
+      else process.env[key] = env[key]
+    }
+  }
+})
