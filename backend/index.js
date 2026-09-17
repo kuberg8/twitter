@@ -43,6 +43,6 @@ mongoose
       console.log(`Server port - ${PORT}`)
     })
 
-    WebSocket(server)
+    app.locals.broadcastPosts = WebSocket(server)
   })
   .catch((err) => console.log(err))

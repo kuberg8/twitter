@@ -5,6 +5,17 @@ const jwt = require('jsonwebtoken')
 
 module.exports = (server) => {
   const wss = new WebSocket.Server({ server })
+  const broadcastPosts = async () => {
+    try {
+      const posts = await Post.find()
+      const payload = JSON.stringify({ posts })
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) client.send(payload)
+      })
+    } catch (error) {
+      console.error('Broadcast failed:', error)
+    }
+  }
   wss.on('connection', (ws) => {
     console.log('A new client connected')
 
@@ -34,15 +45,38 @@ module.exports = (server) => {
           return ws.send(JSON.stringify({ error: 'Пользователь не найден' }))
         }
 
+        if (
+          typeof parseData.message !== 'string' ||
+          !parseData.message.trim() ||
+          parseData.message.length > 5000
+        ) {
+          return ws.send(
+            JSON.stringify({
+              error: 'Введите сообщение длиной до 5000 символов',
+            })
+          )
+        }
+        parseData.message = parseData.message.trim()
         let post
 
         if (parseData.postId) {
           post = await Post.findById(parseData.postId)
+          if (!post || String(post.user?._id) !== String(user._id)) {
+            return ws.send(
+              JSON.stringify({
+                error: 'Сообщение недоступно для редактирования',
+              })
+            )
+          }
           post.message = parseData.message
         } else {
           post = new Post({
             message: parseData.message,
-            user,
+            user: {
+              _id: user._id,
+              first_name: user.first_name,
+              last_name: user.last_name,
+            },
           })
         }
 
@@ -64,4 +98,5 @@ module.exports = (server) => {
       console.log('Client disconnected')
     })
   })
+  return broadcastPosts
 }

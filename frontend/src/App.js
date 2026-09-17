@@ -21,7 +21,8 @@ function App() {
       const error =
         (errors?.length && errors[0].msg) ||
         reason?.response?.data?.message ||
-        reason.message;
+        reason?.message ||
+        'Произошла ошибка. Попробуйте ещё раз.';
 
       triggerAlert(error, 'error');
     };

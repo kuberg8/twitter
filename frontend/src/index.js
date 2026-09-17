@@ -1,3 +1,6 @@
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import theme from './theme';
+import './styles.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -12,7 +15,10 @@ root.render(
   <Provider store={store}>
     <BrowserRouter basename={process.env.PUBLIC_URL}>
       <AlertProvider>
-        <App />
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <App />
+        </ThemeProvider>
       </AlertProvider>
     </BrowserRouter>
   </Provider>

@@ -1,15 +1,11 @@
+import AuthLayout from '../components/AuthLayout';
 import * as React from 'react';
-import Avatar from '@mui/material/Avatar';
-import CssBaseline from '@mui/material/CssBaseline';
+
 import Link from '@mui/material/Link';
 import { Link as RouterLink } from 'react-router-dom';
 import Grid from '@mui/material/Grid';
-import Box from '@mui/material/Box';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+
 import { LoadingButton } from '@mui/lab';
-import Typography from '@mui/material/Typography';
-import Container from '@mui/material/Container';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 import { Form } from 'react-final-form';
 import { FORM_ERROR } from 'final-form';
@@ -19,24 +15,27 @@ import { validation } from '../utils/validation';
 import { registration } from '../api/auth';
 import { useNavigate } from 'react-router-dom';
 
-const theme = createTheme();
-
 const SignUpFormRender = ({ submitError, handleSubmit, submitting }) => (
   <form onSubmit={handleSubmit} style={{ width: '100%', marginTop: '10px' }}>
     <Grid container spacing={2}>
       <Grid item xs={12} sm={6}>
-        <Input name="first_name" label="First Name" />
+        <Input name="first_name" label="Имя" autoComplete="given-name" />
       </Grid>
       <Grid item xs={12} sm={6}>
-        <Input name="last_name" label="Last Name" />
+        <Input name="last_name" label="Фамилия" autoComplete="family-name" />
       </Grid>
       <Grid item xs={12}>
-        <Input name="email" label="Email" autoComplete="username" />
+        <Input
+          name="email"
+          label="Электронная почта"
+          type="email"
+          autoComplete="username"
+        />
       </Grid>
       <Grid item xs={12}>
         <Input
           name="password"
-          label="Password"
+          label="Пароль"
           type="password"
           autoComplete="new-password"
         />
@@ -50,16 +49,18 @@ const SignUpFormRender = ({ submitError, handleSubmit, submitting }) => (
       sx={{ mt: 3, mb: 2 }}
       loading={submitting}
     >
-      Sign Up
+      Создать аккаунт
     </LoadingButton>
 
     {submitError && (
-      <div style={{ color: '#d32f2f', textAlign: 'right' }}>{submitError}</div>
+      <div role="alert" style={{ color: '#d32f2f', textAlign: 'right' }}>
+        {submitError}
+      </div>
     )}
     <Grid container justifyContent="flex-end">
       <Grid item>
         <Link component={RouterLink} to="/sign-in">
-          Already have an account? Sign in
+          Уже есть аккаунт? Войти
         </Link>
       </Grid>
     </Grid>
@@ -82,44 +83,27 @@ export default function SignUp(props) {
 
       props.setAlert(data.message);
       history('/sign-in');
-    } catch ({ response }) {
-      return { [FORM_ERROR]: response.data.message };
+    } catch (error) {
+      return {
+        [FORM_ERROR]:
+          error.response?.data?.message ||
+          'Не удалось связаться с сервером. Попробуйте ещё раз.',
+      };
     }
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <Container component="main" maxWidth="xs">
-        <CssBaseline />
-        <Box
-          sx={{
-            marginTop: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-            <LockOutlinedIcon />
-          </Avatar>
-          <Typography component="h1" variant="h5">
-            Sign up
-          </Typography>
-
-          <Form
-            onSubmit={onSubmit}
-            render={SignUpFormRender}
-            validate={(values) =>
-              validation(values, [
-                'first_name',
-                'last_name',
-                'email',
-                'password',
-              ])
-            }
-          />
-        </Box>
-      </Container>
-    </ThemeProvider>
+    <AuthLayout
+      title="Присоединяйтесь"
+      subtitle="Создайте аккаунт и начните общение."
+    >
+      <Form
+        onSubmit={onSubmit}
+        render={SignUpFormRender}
+        validate={(values) =>
+          validation(values, ['first_name', 'last_name', 'email', 'password'])
+        }
+      />
+    </AuthLayout>
   );
 }

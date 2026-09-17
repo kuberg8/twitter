@@ -1,3 +1,4 @@
+const { Types } = require('mongoose')
 const Post = require('../models/Post')
 const User = require('../models/User')
 const { validationResult } = require('express-validator')
@@ -38,6 +39,7 @@ class PostController {
       })
 
       await post.save()
+      req.app.locals.broadcastPosts?.()
       res.json({ message: 'Пост успешно создан' })
     } catch (err) {
       console.log(err)
@@ -57,9 +59,16 @@ class PostController {
       const { id } = req.params
       const { message } = req.body
 
-      const updatedPost = await Post.findByIdAndUpdate({ _id: id }, { message })
+      const updatedPost = await Post.findOneAndUpdate(
+        {
+          _id: id,
+          'user._id': { $in: [req.user.id, new Types.ObjectId(req.user.id)] },
+        },
+        { message: message.trim() }
+      )
 
       if (updatedPost) {
+        req.app.locals.broadcastPosts?.()
         res.json({ message: 'Пост успешно изменен' })
       } else {
         res.status(400).json({ message: 'Пост не найден' })
@@ -74,9 +83,13 @@ class PostController {
     try {
       const { id } = req.params
 
-      const deletedPost = await Post.findOneAndDelete({ _id: id })
+      const deletedPost = await Post.findOneAndDelete({
+        _id: id,
+        'user._id': { $in: [req.user.id, new Types.ObjectId(req.user.id)] },
+      })
 
       if (deletedPost) {
+        req.app.locals.broadcastPosts?.()
         res.json({ message: 'Пост успешно удален' })
       } else {
         res.status(400).json({ message: 'Пост не найден' })

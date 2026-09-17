@@ -26,7 +26,14 @@ const router = Router()
  */
 router.post(
   '/',
-  [authMiddleware, check('message', 'Сообщение поста обязательно').notEmpty()],
+  [
+    authMiddleware,
+    check('message', 'Введите сообщение длиной от 1 до 5000 символов')
+      .isString()
+      .bail()
+      .trim()
+      .isLength({ min: 1, max: 5000 }),
+  ],
   createPost
 )
 
@@ -69,7 +76,14 @@ router.get('/', authMiddleware, getPosts)
  */
 router.put(
   '/:id',
-  [authMiddleware, check('message', 'Сообщение поста обязательно').notEmpty()],
+  [
+    authMiddleware,
+    check('message', 'Введите сообщение длиной от 1 до 5000 символов')
+      .isString()
+      .bail()
+      .trim()
+      .isLength({ min: 1, max: 5000 }),
+  ],
   updatePost
 )
 

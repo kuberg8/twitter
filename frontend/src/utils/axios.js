@@ -7,14 +7,9 @@ const instance = axios.create({
 });
 
 instance.interceptors.request.use((request) => {
-  const isAuthorization = !!instance.defaults.headers.common['Authorization'];
   const token = localStorage.getItem('token');
-
-  if (!isAuthorization && token) {
-    const bearer = 'Bearer ' + token;
-    instance.defaults.headers.common['Authorization'] = bearer;
-    request.headers.common['Authorization'] = bearer;
-  }
+  if (token) request.headers.Authorization = `Bearer ${token}`;
+  else delete request.headers.Authorization;
 
   return request;
 });
