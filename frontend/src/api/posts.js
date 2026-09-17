@@ -4,8 +4,15 @@ import axios from '../utils/axios.js';
  * Получение постов
  * @return {Array} Посты
  */
-function getPosts(peer) {
-  return axios.get('/posts', { params: peer ? { peer } : {} });
+async function getPosts(peer, before) {
+  const response = await axios.get('/posts', {
+    params: { ...(peer ? { peer } : {}), ...(before ? { before } : {}) },
+  });
+  return {
+    ...response,
+    data: response.data.posts,
+    nextCursor: response.data.nextCursor,
+  };
 }
 
 /**

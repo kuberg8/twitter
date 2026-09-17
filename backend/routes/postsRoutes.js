@@ -9,6 +9,10 @@ const { check } = require('express-validator')
 const authMiddleware = require('../middleware/authMiddleware')
 
 const router = Router()
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'private, no-store')
+  next()
+})
 
 /**
  * @swagger

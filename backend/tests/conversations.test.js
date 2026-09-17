@@ -29,7 +29,7 @@ test('history uses authenticated identity rather than a forged query user and re
   let query
   Post.find = (filter) => {
     query = filter
-    return { sort: async () => [] }
+    return { sort: () => ({ limit: () => ({ lean: async () => [] }) }) }
   }
   try {
     await controller.getPosts(

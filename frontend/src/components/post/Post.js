@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import {
   IconButton,
   Dialog,
@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-export default function Post({ post, deletePost, setEdit, isOwner }) {
+function Post({ post, deletePost, setEdit, isOwner }) {
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const name =
@@ -17,22 +17,19 @@ export default function Post({ post, deletePost, setEdit, isOwner }) {
     'Участник';
   const date = new Date(post.created_at);
   return (
-    <article className="message">
+    <article className={`message ${isOwner ? 'outgoing' : 'incoming'}`}>
       <div className={`avatar ${isOwner ? 'own' : ''}`}>
         {name.slice(0, 1).toUpperCase()}
       </div>
-      <div className="message-content">
+      <div className="message-bubble">
         <div className="message-meta">
-          <strong>{name}</strong>
-          {isOwner && <span className="you-badge">Вы</span>}
+          <strong>{isOwner ? 'Вы' : name}</strong>
           {!Number.isNaN(date.getTime()) && (
             <time
               dateTime={date.toISOString()}
               title={date.toLocaleString('ru-RU')}
             >
               {date.toLocaleString('ru-RU', {
-                day: 'numeric',
-                month: 'short',
                 hour: '2-digit',
                 minute: '2-digit',
               })}
@@ -83,3 +80,5 @@ export default function Post({ post, deletePost, setEdit, isOwner }) {
     </article>
   );
 }
+
+export default memo(Post);

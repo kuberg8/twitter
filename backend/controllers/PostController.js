@@ -1,3 +1,4 @@
+const { parseCursor, makePage, publicPost } = require('../services/messagePage')
 const { conversationFilter, validId } = require('../services/conversations')
 const { sendPostNotifications } = require('../services/push')
 const { Types } = require('mongoose')
@@ -16,10 +17,22 @@ class PostController {
       ) {
         return res.status(400).json({ message: 'Некорректный собеседник.' })
       }
-      const posts = await Post.find(conversationFilter(req.user.id, peer)).sort(
-        { created_at: 1, _id: 1 }
-      )
-      res.json(posts)
+      const limit = 50
+      let filter = conversationFilter(req.user.id, peer)
+      if (req.query?.before !== undefined) {
+        try {
+          filter = { $and: [filter, parseCursor(req.query.before)] }
+        } catch {
+          return res
+            .status(400)
+            .json({ message: 'Некорректная страница истории.' })
+        }
+      }
+      const posts = await Post.find(filter)
+        .sort({ created_at: -1, _id: -1 })
+        .limit(limit + 1)
+        .lean()
+      res.json(makePage(posts, limit))
     } catch (err) {
       console.log(err)
       res.status(400).json({ message: 'Ошибка получения списка постов' })
@@ -60,8 +73,8 @@ class PostController {
 
       await post.save()
       void sendPostNotifications(post)
-      req.app.locals.broadcastPosts?.(post)
-      res.json({ message: 'Пост успешно создан' })
+      req.app.locals.broadcastPosts?.(post, 'created')
+      res.json({ message: 'Пост успешно создан', post: publicPost(post) })
     } catch (err) {
       console.log(err)
       res.status(400).json({ message: 'Ошибка создания поста' })
@@ -85,12 +98,16 @@ class PostController {
           _id: id,
           'user._id': { $in: [req.user.id, new Types.ObjectId(req.user.id)] },
         },
-        { message: message.trim() }
+        { message: message.trim() },
+        { new: true }
       )
 
       if (updatedPost) {
-        req.app.locals.broadcastPosts?.(updatedPost)
-        res.json({ message: 'Пост успешно изменен' })
+        req.app.locals.broadcastPosts?.(updatedPost, 'updated')
+        res.json({
+          message: 'Пост успешно изменен',
+          post: publicPost(updatedPost),
+        })
       } else {
         res.status(400).json({ message: 'Пост не найден' })
       }
@@ -110,8 +127,11 @@ class PostController {
       })
 
       if (deletedPost) {
-        req.app.locals.broadcastPosts?.(deletedPost)
-        res.json({ message: 'Пост успешно удален' })
+        req.app.locals.broadcastPosts?.(deletedPost, 'deleted')
+        res.json({
+          message: 'Пост успешно удален',
+          post: publicPost(deletedPost),
+        })
       } else {
         res.status(400).json({ message: 'Пост не найден' })
       }

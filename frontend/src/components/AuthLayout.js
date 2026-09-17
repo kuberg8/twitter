@@ -1,3 +1,4 @@
+import ThemeChoice from './ThemeChoice';
 import React from 'react';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 export default function AuthLayout({ title, subtitle, children }) {
@@ -32,6 +33,9 @@ export default function AuthLayout({ title, subtitle, children }) {
         <span className="story-footer">Ваши мысли заслуживают разговора.</span>
       </section>
       <section className="auth-form-panel">
+        <div className="auth-theme">
+          <ThemeChoice />
+        </div>
         <div className="auth-form">
           <span className="eyebrow">РАДЫ ВАС ВИДЕТЬ</span>
           <h2>{title}</h2>

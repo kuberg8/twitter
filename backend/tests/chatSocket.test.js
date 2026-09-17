@@ -66,10 +66,28 @@ test('socket requires authentication and private updates reach only the two part
     }
     broadcast(post)
     assert.deepEqual(clients[0].received, [
-      { type: 'posts:changed', peerId: ids[1] },
+      {
+        type: 'posts:changed',
+        peerId: ids[1],
+        action: 'updated',
+        post: {
+          message: 'Private text',
+          recipient: ids[1],
+          user: { _id: ids[0], first_name: '', last_name: '' },
+        },
+      },
     ])
     assert.deepEqual(clients[1].received, [
-      { type: 'posts:changed', peerId: ids[0] },
+      {
+        type: 'posts:changed',
+        peerId: ids[0],
+        action: 'updated',
+        post: {
+          message: 'Private text',
+          recipient: ids[1],
+          user: { _id: ids[0], first_name: '', last_name: '' },
+        },
+      },
     ])
     assert.equal(clients[2].received.length, 0)
     assert.equal(anonymous.received.length, 0)

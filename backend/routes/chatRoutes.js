@@ -5,6 +5,10 @@ const Post = require('../models/Post')
 const auth = require('../middleware/authMiddleware')
 const { validId, idVariants } = require('../services/conversations')
 const router = Router()
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'private, no-store')
+  next()
+})
 router.use(auth)
 router.get('/users', async (req, res) => {
   try {

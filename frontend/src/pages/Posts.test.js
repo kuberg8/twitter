@@ -37,9 +37,9 @@ beforeEach(() => {
   getChats.mockResolvedValue({ data: [] });
   getUsers.mockResolvedValue({ data: [{ _id: 'peer', first_name: 'Борис' }] });
   getChatUser.mockResolvedValue({ data: { _id: 'peer', first_name: 'Борис' } });
-  global.WebSocket = class {
-    close() {}
-  };
+  global.WebSocket = jest
+    .fn()
+    .mockImplementation(() => ({ close: jest.fn(), send: jest.fn() }));
   getPosts.mockResolvedValue({ data: [message] });
   Element.prototype.scrollIntoView = jest.fn();
 });
@@ -52,14 +52,16 @@ test('shows edit controls only for the owner and saves edits through the API', a
   fireEvent.click(
     await screen.findByRole('button', { name: 'Редактировать сообщение' })
   );
-  fireEvent.change(screen.getByRole('textbox'), {
+  fireEvent.change(screen.getByRole('textbox', { name: 'Сообщение' }), {
     target: { value: 'Обновлено' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
   await waitFor(() =>
     expect(updatePost).toHaveBeenCalledWith('p1', 'Обновлено')
   );
-  await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue(''));
+  await waitFor(() =>
+    expect(screen.getByRole('textbox', { name: 'Сообщение' })).toHaveValue('')
+  );
 });
 test('keeps a draft after a failed send', async () => {
   createPost.mockRejectedValue(new Error('offline'));
@@ -68,17 +70,21 @@ test('keeps a draft after a failed send', async () => {
   expect(
     screen.queryByRole('button', { name: 'Редактировать сообщение' })
   ).not.toBeInTheDocument();
-  fireEvent.change(screen.getByRole('textbox'), {
+  fireEvent.change(screen.getByRole('textbox', { name: 'Сообщение' }), {
     target: { value: 'Мой черновик' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Отправить' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Текст сохранён');
-  expect(screen.getByRole('textbox')).toHaveValue('Мой черновик');
+  expect(screen.getByRole('textbox', { name: 'Сообщение' })).toHaveValue(
+    'Мой черновик'
+  );
 });
 test('does not send whitespace-only messages', async () => {
   render(<Posts userId="u1" />);
   await screen.findByText('Привет');
-  fireEvent.change(screen.getByRole('textbox'), { target: { value: '   ' } });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Сообщение' }), {
+    target: { value: '   ' },
+  });
   expect(screen.getByRole('button', { name: 'Отправить' })).toBeDisabled();
   expect(createPost).not.toHaveBeenCalled();
 });
@@ -90,7 +96,7 @@ test('opens a private chat, sends to its recipient and preserves the general-cha
   );
   render(<Posts userId="u1" token="token" />);
   await screen.findByText('Привет');
-  fireEvent.change(screen.getByRole('textbox'), {
+  fireEvent.change(screen.getByRole('textbox', { name: 'Сообщение' }), {
     target: { value: 'Черновик общего чата' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Новый чат' }));
@@ -98,15 +104,21 @@ test('opens a private chat, sends to its recipient and preserves the general-cha
   await screen.findByRole('heading', { level: 1, name: /Борис/ });
   await waitFor(() => expect(getPosts).toHaveBeenCalledWith('peer'));
   expect(screen.queryByText('Привет')).not.toBeInTheDocument();
-  fireEvent.change(screen.getByRole('textbox'), {
+  fireEvent.change(screen.getByRole('textbox', { name: 'Сообщение' }), {
     target: { value: 'Только для Бориса' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Отправить' }));
   await waitFor(() =>
     expect(createPost).toHaveBeenCalledWith('Только для Бориса', 'peer')
   );
-  await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue(''));
+  await waitFor(() =>
+    expect(screen.getByRole('textbox', { name: 'Сообщение' })).toHaveValue('')
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Общий чат' }));
   await screen.findByText('Привет');
-  expect(screen.getByRole('textbox')).toHaveValue('Черновик общего чата');
+  expect(screen.getByRole('textbox', { name: 'Сообщение' })).toHaveValue(
+    'Черновик общего чата'
+  );
+  expect(global.WebSocket).toHaveBeenCalledTimes(1);
+  expect(getPosts.mock.calls.filter(([peer]) => peer === '').length).toBe(1);
 });

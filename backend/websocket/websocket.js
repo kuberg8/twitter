@@ -1,3 +1,4 @@
+const { publicPost } = require('../services/messagePage')
 const WebSocket = require('ws')
 const User = require('../models/User')
 const jwt = require('jsonwebtoken')
@@ -5,8 +6,8 @@ const { canReceive, validId } = require('../services/conversations')
 
 module.exports = (server) => {
   const wss = new WebSocket.Server({ server, maxPayload: 16384 })
-  // Send only invalidations to authenticated participants; history is fetched through scoped REST routes.
-  const broadcastPosts = (post) => {
+  // Deliver one sanitized change only to authenticated conversation participants.
+  const broadcastPosts = (post, action = 'updated') => {
     if (!post) return
     wss.clients.forEach((client) => {
       if (client.readyState !== WebSocket.OPEN || !client.userId) return
@@ -18,6 +19,8 @@ module.exports = (server) => {
         client.send(
           JSON.stringify({
             type: 'posts:changed',
+            action,
+            post: publicPost(post),
             peerId: post.recipient
               ? String(post.user._id) === client.userId
                 ? String(post.recipient)

@@ -1,137 +1,167 @@
-import React, { useEffect, useState } from 'react';
-import { Button, TextField } from '@mui/material';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Button, IconButton } from '@mui/material';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { getChats, getUsers } from '../api/chats';
+import useCachedResource from '../hooks/useCachedResource';
 export const userName = (user) =>
   [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Участник';
-
-export default function ChatNavigation({ peerId, onSelect, revision }) {
-  const [chats, setChats] = useState([]);
-  const [users, setUsers] = useState([]);
+const loadChats = async () => (await getChats()).data;
+export default function ChatNavigation({ peerId, onSelect, cache }) {
+  const {
+    data: chats = [],
+    error,
+    refresh,
+  } = useCachedResource(cache, 'chats', loadChats);
   const [query, setQuery] = useState('');
   const [choosing, setChoosing] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [retry, setRetry] = useState(0);
-  useEffect(() => {
-    let active = true;
-    getChats()
-      .then(({ data }) => {
-        if (active) {
-          setChats(data);
-          setError('');
-        }
-      })
-      .catch(() => {
-        if (active) setError('Не удалось загрузить диалоги.');
-      });
-    return () => {
-      active = false;
-    };
-  }, [revision, retry]);
-  useEffect(() => {
-    if (!choosing) return;
-    let active = true;
-    setLoading(true);
-    const timer = setTimeout(() => {
-      getUsers(query)
-        .then(({ data }) => {
-          if (active) {
-            setUsers(data);
-            setError('');
-          }
-        })
-        .catch(() => {
-          if (active) setError('Не удалось найти участников.');
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
-    }, 250);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [choosing, query, retry]);
-  const choose = (id) => {
-    onSelect(id);
+  const choose = (peer) => {
+    if (peer) cache.prime(`user:${peer._id}`, peer);
+    onSelect(peer?._id || '');
     setChoosing(false);
     setQuery('');
   };
+  const filtered = chats.filter(({ peer }) =>
+    userName(peer).toLocaleLowerCase().includes(query.toLocaleLowerCase())
+  );
   return (
     <nav className="chat-navigation" aria-label="Чаты">
+      <div className="chat-search">
+        <SearchRoundedIcon fontSize="small" />
+        <input
+          aria-label="Поиск чатов"
+          placeholder="Поиск чатов"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
       <button
-        className={`chat-link ${!peerId ? 'selected' : ''}`}
-        onClick={() => choose('')}
+        aria-label="Общий чат"
+        className={`chat-link general-chat ${!peerId ? 'selected' : ''}`}
+        onClick={() => choose(null)}
         aria-current={!peerId ? 'page' : undefined}
       >
-        <ForumRoundedIcon fontSize="small" />
-        <span>Общий чат</span>
+        <span className="avatar general-avatar">
+          <ForumRoundedIcon fontSize="small" />
+        </span>
+        <span className="chat-link-text">
+          <strong>Общий чат</strong>
+          <small>Обсуждаем всё вместе</small>
+        </span>
       </button>
       <div className="chat-list-heading">
-        <span>ЛИЧНЫЕ ЧАТЫ</span>
-        <Button size="small" onClick={() => setChoosing(!choosing)}>
-          {choosing ? 'Закрыть' : 'Новый чат'}
-        </Button>
-      </div>
-      {choosing && (
-        <div className="contact-picker">
-          <TextField
-            label="Найти по имени"
-            size="small"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            fullWidth
-            autoFocus
-          />
-          {loading ? (
-            <p>Ищем участников…</p>
+        <span>Личные сообщения</span>
+        <IconButton
+          size="small"
+          aria-label={choosing ? 'Закрыть поиск участников' : 'Новый чат'}
+          onClick={() => setChoosing(!choosing)}
+        >
+          {choosing ? (
+            <CloseRoundedIcon fontSize="small" />
           ) : (
-            <div className="contact-results">
-              {users.map((user) => (
-                <button
-                  className="chat-link"
-                  key={user._id}
-                  onClick={() => choose(user._id)}
-                >
-                  <span className="avatar">{userName(user).slice(0, 1)}</span>
-                  <span>{userName(user)}</span>
-                </button>
-              ))}
-              {!users.length && !error && <p>Участники не найдены.</p>}
-            </div>
+            <AddRoundedIcon fontSize="small" />
           )}
-        </div>
-      )}
+        </IconButton>
+      </div>
+      {choosing && <UserSearch cache={cache} onChoose={choose} />}
       {error && (
-        <div role="alert" className="chat-list-error">
-          {error}
-          <Button size="small" onClick={() => setRetry((value) => value + 1)}>
+        <div className="chat-list-error" role="alert">
+          Не удалось обновить диалоги.
+          <Button size="small" onClick={() => refresh().catch(() => {})}>
             Повторить
           </Button>
         </div>
       )}
       <div className="chat-list">
-        {chats.map(({ peer, message }) => (
+        {filtered.map(({ peer, message, created_at }) => (
           <button
             className={`chat-link ${peerId === peer._id ? 'selected' : ''}`}
             key={peer._id}
-            onClick={() => choose(peer._id)}
+            onClick={() => choose(peer)}
             aria-current={peerId === peer._id ? 'page' : undefined}
           >
             <span className="avatar">{userName(peer).slice(0, 1)}</span>
             <span className="chat-link-text">
-              <strong>{userName(peer)}</strong>
+              <span className="chat-name-line">
+                <strong>{userName(peer)}</strong>
+                <time>
+                  {new Date(created_at).toLocaleDateString('ru-RU', {
+                    day: 'numeric',
+                    month: 'short',
+                  })}
+                </time>
+              </span>
               <small>{message}</small>
             </span>
           </button>
         ))}
-        {!chats.length && !choosing && !error && (
-          <p className="chat-list-empty">
-            Выберите «Новый чат», чтобы написать лично.
-          </p>
+        {!filtered.length && !choosing && !error && (
+          <div className="chat-list-empty">
+            <p>
+              {query ? 'Таких диалогов пока нет' : 'Ваши разговоры будут здесь'}
+            </p>
+            <Button size="small" onClick={() => setChoosing(true)}>
+              Начать переписку
+            </Button>
+          </div>
         )}
       </div>
     </nav>
+  );
+}
+function UserSearch({ cache, onChoose }) {
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(query.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [query]);
+  const loader = useCallback(
+    async () => (await getUsers(search)).data,
+    [search]
+  );
+  const { data, error, refresh } = useCachedResource(
+    cache,
+    `search:${search}`,
+    loader,
+    60000
+  );
+  return (
+    <div className="contact-picker">
+      <div className="chat-search">
+        <SearchRoundedIcon fontSize="small" />
+        <input
+          aria-label="Найти по имени"
+          placeholder="Имя собеседника"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          autoFocus
+        />
+      </div>
+      <div className="contact-results">
+        {error ? (
+          <p role="alert">
+            Не удалось найти участников.
+            <Button onClick={() => refresh().catch(() => {})}>Повторить</Button>
+          </p>
+        ) : !data ? (
+          <p>Ищем участников…</p>
+        ) : (
+          data.map((user) => (
+            <button
+              className="chat-link"
+              key={user._id}
+              onClick={() => onChoose(user)}
+            >
+              <span className="avatar">{userName(user).slice(0, 1)}</span>
+              <strong>{userName(user)}</strong>
+            </button>
+          ))
+        )}
+        {data?.length === 0 && <p>Участники не найдены.</p>}
+      </div>
+    </div>
   );
 }

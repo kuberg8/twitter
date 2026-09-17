@@ -55,9 +55,10 @@ export default function useMessageSound(userId, conversationId) {
   }, [disable]);
 
   const notify = useCallback(
-    (posts) => {
+    (posts, silent = false) => {
       const incoming = trackerRef.current(posts);
-      if (!incoming || !enabledRef.current || !audioRef.current) return;
+      if (silent || !incoming || !enabledRef.current || !audioRef.current)
+        return;
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(disable);
     },

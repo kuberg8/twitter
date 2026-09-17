@@ -12,6 +12,7 @@ const Post = new Schema({
   user: { type: Object, ref: 'User' },
 })
 
-Post.index({ 'user._id': 1, recipient: 1, created_at: -1 })
+Post.index({ 'user._id': 1, recipient: 1, created_at: -1, _id: -1 })
+Post.index({ recipient: 1, created_at: -1, _id: -1 })
 
 module.exports = model('Post', Post)
