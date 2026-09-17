@@ -1,3 +1,4 @@
+const { sendPostNotifications } = require('../services/push')
 const { Types } = require('mongoose')
 const Post = require('../models/Post')
 const User = require('../models/User')
@@ -39,6 +40,7 @@ class PostController {
       })
 
       await post.save()
+      void sendPostNotifications(post)
       req.app.locals.broadcastPosts?.()
       res.json({ message: 'Пост успешно создан' })
     } catch (err) {

@@ -1,3 +1,8 @@
+import PushNotifications from '../components/PushNotifications';
+import { disablePush } from '../utils/pushNotifications';
+import useMessageSound from '../hooks/useMessageSound';
+import VolumeUpRoundedIcon from '@mui/icons-material/VolumeUpRounded';
+import VolumeOffRoundedIcon from '@mui/icons-material/VolumeOffRounded';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, CircularProgress } from '@mui/material';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
@@ -9,6 +14,11 @@ import { logout } from '../store/userSlice';
 import { useDispatch } from 'react-redux';
 const WS_URL = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:3000';
 export default function Posts({ userId }) {
+  const {
+    enabled: soundEnabled,
+    toggleSound,
+    notify,
+  } = useMessageSound(userId);
   const [posts, setPosts] = useState([]);
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
@@ -21,6 +31,7 @@ export default function Posts({ userId }) {
   const fetchPosts = useCallback(async () => {
     try {
       const { data } = await getPosts();
+      notify(data);
       setPosts(data);
       setError('');
     } catch {
@@ -30,7 +41,7 @@ export default function Posts({ userId }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [notify]);
   useEffect(() => {
     let disposed = false;
     let socket;
@@ -46,7 +57,10 @@ export default function Posts({ userId }) {
       socket.onmessage = ({ data }) => {
         try {
           const payload = JSON.parse(data);
-          if (Array.isArray(payload.posts)) setPosts(payload.posts);
+          if (Array.isArray(payload.posts)) {
+            notify(payload.posts);
+            setPosts(payload.posts);
+          }
         } catch {
           setError('Не удалось получить обновление. Обновите ленту.');
         }
@@ -68,7 +82,7 @@ export default function Posts({ userId }) {
       clearInterval(refresh);
       socket.close();
     };
-  }, [fetchPosts]);
+  }, [fetchPosts, notify]);
   const save = async (event) => {
     event?.preventDefault();
     if (!value.trim() || saving) return;
@@ -122,7 +136,16 @@ export default function Posts({ userId }) {
         <Button
           className="logout"
           startIcon={<LogoutRoundedIcon />}
-          onClick={() => dispatch(logout())}
+          onClick={async () => {
+            try {
+              await disablePush();
+              dispatch(logout());
+            } catch {
+              setError(
+                'Не удалось отключить уведомления. Повторите выход из аккаунта.'
+              );
+            }
+          }}
         >
           Выйти из аккаунта
         </Button>
@@ -201,6 +224,17 @@ export default function Posts({ userId }) {
             <Button onClick={fetchPosts}>Повторить</Button>
           </div>
         )}
+        <Button
+          onClick={toggleSound}
+          aria-pressed={soundEnabled}
+          startIcon={
+            soundEnabled ? <VolumeUpRoundedIcon /> : <VolumeOffRoundedIcon />
+          }
+          sx={{ mt: 2 }}
+        >
+          {soundEnabled ? 'Выключить звук' : 'Включить звук'}
+        </Button>
+        <PushNotifications userId={userId} />
         <div className="feed-section">
           <h2>Последние сообщения</h2>
           <span>{posts.length}</span>

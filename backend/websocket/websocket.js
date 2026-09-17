@@ -1,3 +1,4 @@
+const { sendPostNotifications } = require('../services/push')
 const WebSocket = require('ws')
 const Post = require('../models/Post')
 const User = require('../models/User')
@@ -81,6 +82,7 @@ module.exports = (server) => {
         }
 
         await post.save()
+        if (!parseData.postId) void sendPostNotifications(post)
         const posts = await Post.find()
 
         wss.clients.forEach((client) => {

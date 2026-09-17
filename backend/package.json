@@ -7,7 +7,9 @@
     "start": "node index",
     "dev": "nodemon index",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "push:setup": "node scripts/setup-push.js",
+    "test": "node --test tests/*.test.js"
   },
   "author": "",
   "license": "ISC",
@@ -21,6 +23,7 @@
     "mongoose": "^6.3.2",
     "swagger-jsdoc": "^6.2.1",
     "swagger-ui-express": "^4.3.0",
+    "web-push": "^3.6.7",
     "ws": "^8.9.0"
   },
   "devDependencies": {

@@ -574,3 +574,14 @@ button:focus-visible {
     font-size: 14px;
   }
 }
+
+.push-settings {
+  margin-top: 12px;
+}
+.push-settings p {
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+.push-settings [role='alert'] {
+  color: #9a4c35;
+}

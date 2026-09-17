@@ -1,3 +1,4 @@
+import { disablePush } from './utils/pushNotifications';
 import React, { useEffect } from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { withAuthRedirect } from './hoc/withAuthRedirect';
@@ -13,6 +14,10 @@ function App() {
   const { alert, triggerAlert } = useAlert();
   const { isAuth, userId, token } = useSelector((state) => state.user);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuth) disablePush({ server: false }).catch(() => {});
+  }, [isAuth]);
 
   useEffect(() => {
     const handleUnhandledRejection = ({ reason }) => {

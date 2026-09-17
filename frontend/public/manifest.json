@@ -1,6 +1,6 @@
 {
   "short_name": "twitter",
-  "name": "Create React App Sample",
+  "name": "Twitter — общий чат",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,6 +20,8 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#526846",
+  "background_color": "#f7f8f5",
+  "id": ".",
+  "scope": "."
 }
