@@ -1,15 +1,19 @@
 import React, { memo, useState } from 'react';
 import {
   IconButton,
+  Menu,
+  MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
 } from '@mui/material';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 function Post({ post, deletePost, setEdit, isOwner }) {
+  const [anchor, setAnchor] = useState(null);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const name =
@@ -41,19 +45,37 @@ function Post({ post, deletePost, setEdit, isOwner }) {
       {isOwner && (
         <div className="message-actions">
           <IconButton
-            aria-label="Редактировать сообщение"
+            aria-label="Действия с сообщением"
+            aria-haspopup="menu"
+            onClick={(event) => setAnchor(event.currentTarget)}
             size="small"
-            onClick={() => setEdit(post)}
           >
-            <EditOutlinedIcon fontSize="small" />
+            <MoreHorizIcon fontSize="small" />
           </IconButton>
-          <IconButton
-            aria-label="Удалить сообщение"
-            size="small"
-            onClick={() => setConfirm(true)}
+          <Menu
+            anchorEl={anchor}
+            open={!!anchor}
+            onClose={() => setAnchor(null)}
           >
-            <DeleteOutlineRoundedIcon fontSize="small" />
-          </IconButton>
+            <MenuItem
+              onClick={() => {
+                setAnchor(null);
+                setEdit(post);
+              }}
+            >
+              <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+              Редактировать сообщение
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setAnchor(null);
+                setConfirm(true);
+              }}
+            >
+              <DeleteOutlineRoundedIcon fontSize="small" sx={{ mr: 1 }} />
+              Удалить сообщение
+            </MenuItem>
+          </Menu>
         </div>
       )}
       <Dialog open={confirm} onClose={() => !deleting && setConfirm(false)}>

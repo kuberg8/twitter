@@ -9,7 +9,12 @@ import useCachedResource from '../hooks/useCachedResource';
 export const userName = (user) =>
   [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Участник';
 const loadChats = async () => (await getChats()).data;
-export default function ChatNavigation({ peerId, onSelect, cache }) {
+export default function ChatNavigation({
+  peerId,
+  onSelect,
+  cache,
+  presence = [],
+}) {
   const {
     data: chats = [],
     error,
@@ -82,7 +87,24 @@ export default function ChatNavigation({ peerId, onSelect, cache }) {
             onClick={() => choose(peer)}
             aria-current={peerId === peer._id ? 'page' : undefined}
           >
-            <span className="avatar">{userName(peer).slice(0, 1)}</span>
+            <span className="avatar" style={{ position: 'relative' }}>
+              {userName(peer).slice(0, 1)}
+              {presence.includes(peer._id) && (
+                <i
+                  aria-label="В сети"
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    background: '#28b77a',
+                    border: '2px solid var(--surface, white)',
+                  }}
+                />
+              )}
+            </span>
             <span className="chat-link-text">
               <span className="chat-name-line">
                 <strong>{userName(peer)}</strong>

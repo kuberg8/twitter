@@ -1,3 +1,4 @@
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import ThemeChoice from '../components/ThemeChoice';
 import React, {
   useCallback,
@@ -13,6 +14,12 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogActions,
+  RadioGroup,
+  Radio,
+  FormControlLabel,
+  Menu,
+  MenuItem,
   IconButton,
 } from '@mui/material';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
@@ -29,7 +36,7 @@ import ChatNavigation, { userName } from '../components/ChatNavigation';
 import PushNotifications from '../components/PushNotifications';
 import MessageComposer from '../components/MessageComposer';
 import Post from '../components/post/Post';
-import { getChatUser, getChats } from '../api/chats';
+import { getChatUser, getChats, deleteChat } from '../api/chats';
 import { getPosts, deletePost } from '../api/posts';
 import { disablePush } from '../utils/pushNotifications';
 import {
@@ -52,7 +59,11 @@ function Messenger({ userId, token }) {
   const [cache] = useState(createChatCache);
   const drafts = useRef(Object.create(null));
   const sound = useMessageSound(userId, peerId);
-  const connected = useChatConnection(cache, token, peerId);
+  const { connected, presence, typing, sendTyping } = useChatConnection(
+    cache,
+    token,
+    peerId
+  );
   const [settings, setSettings] = useState(false);
   const [error, setError] = useState('');
   const dispatch = useDispatch();
@@ -81,7 +92,12 @@ function Messenger({ userId, token }) {
             <SettingsOutlinedIcon />
           </IconButton>
         </header>
-        <ChatNavigation peerId={peerId} onSelect={select} cache={cache} />
+        <ChatNavigation
+          peerId={peerId}
+          onSelect={select}
+          cache={cache}
+          presence={presence}
+        />
         <footer className="sidebar-footer">
           <span className={`connection ${connected ? 'online' : ''}`}>
             <i />
@@ -117,6 +133,9 @@ function Messenger({ userId, token }) {
         sound={sound}
         onBack={back}
         connected={connected}
+        peerOnline={presence.includes(peerId)}
+        typing={typing}
+        onTyping={sendTyping}
       />
       <Dialog
         open={settings}
@@ -162,6 +181,9 @@ export function Conversation({
   sound,
   onBack,
   connected,
+  peerOnline,
+  typing,
+  onTyping,
 }) {
   const loader = useCallback(() => loadMessages(peerId), [peerId]);
   const history = useCachedResource(cache, messageKey(peerId), loader);
@@ -180,6 +202,10 @@ export function Conversation({
   const refreshMessages = history.refresh;
   const quiet = useRef(false);
   const [editing, setEditing] = useState(null);
+  const [chatMenu, setChatMenu] = useState(null);
+  const [deleteScope, setDeleteScope] = useState('self');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deletingChat, setDeletingChat] = useState(false);
   const [actionError, setActionError] = useState('');
   const [olderLoading, setOlderLoading] = useState(false);
   const [away, setAway] = useState(false);
@@ -309,20 +335,122 @@ export function Conversation({
         <div className="conversation-title">
           <h1>{name}</h1>
           <p>
-            {peerId ? 'Личная переписка' : 'Пространство для всех участников'}
+            {typing
+              ? peerId
+                ? 'Печатает…'
+                : 'Кто-то печатает…'
+              : peerId
+                ? !connected
+                  ? 'Статус недоступен'
+                  : peerOnline
+                    ? 'В сети'
+                    : 'Не в сети'
+                : 'Пространство для всех участников'}
           </p>
         </div>
-        <span
-          className={`connection ${connected ? 'online' : ''}`}
-          title={
-            connected
-              ? 'Соединение с сервером установлено'
-              : 'Восстанавливаем соединение'
-          }
-        >
-          <i />
-          <span>{connected ? 'На связи' : 'Подключение…'}</span>
-        </span>
+        {peerId && (
+          <>
+            <IconButton
+              aria-label="Действия с чатом"
+              aria-haspopup="menu"
+              onClick={(event) => setChatMenu(event.currentTarget)}
+            >
+              <MoreHorizIcon />
+            </IconButton>
+            <Menu
+              anchorEl={chatMenu}
+              open={!!chatMenu}
+              onClose={() => setChatMenu(null)}
+            >
+              <MenuItem
+                onClick={() => {
+                  setChatMenu(null);
+                  setDeleteScope('self');
+                  setConfirmDelete(true);
+                }}
+              >
+                Удалить чат
+              </MenuItem>
+            </Menu>
+            <Dialog
+              open={confirmDelete}
+              onClose={() => !deletingChat && setConfirmDelete(false)}
+            >
+              <DialogTitle>Удалить чат?</DialogTitle>
+              <DialogContent>
+                <RadioGroup
+                  aria-label="У кого удалить чат"
+                  value={deleteScope}
+                  onChange={(event) => setDeleteScope(event.target.value)}
+                >
+                  <FormControlLabel
+                    value="self"
+                    control={<Radio />}
+                    label="Только у меня"
+                    disabled={deletingChat}
+                  />
+                  <FormControlLabel
+                    value="both"
+                    control={<Radio />}
+                    label="У обоих"
+                    disabled={deletingChat}
+                  />
+                </RadioGroup>
+                <p>
+                  {deleteScope === 'both'
+                    ? 'Вся переписка будет удалена у вас и у собеседника. Восстановить её не получится.'
+                    : 'История исчезнет только у вас. У собеседника сообщения останутся.'}
+                </p>
+                <p>Новое сообщение снова появится в списке чатов.</p>
+              </DialogContent>
+              <DialogActions>
+                <Button
+                  disabled={deletingChat}
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  color="error"
+                  disabled={deletingChat}
+                  onClick={async () => {
+                    setDeletingChat(true);
+                    try {
+                      await deleteChat(peerId, deleteScope);
+                      cache.update(messageKey(peerId), () => ({
+                        posts: [],
+                        nextCursor: null,
+                      }));
+                      cache.update('chats', (chats) =>
+                        (chats || []).filter((chat) => chat.peer._id !== peerId)
+                      );
+                      cache.invalidate(messageKey(peerId));
+                      cache.invalidate('chats');
+                      cache
+                        .read('chats', async () => (await getChats()).data, {
+                          force: true,
+                        })
+                        .catch(() => {});
+                      delete drafts.current[peerId];
+                      onBack();
+                    } catch {
+                      setActionError(
+                        'Не удалось удалить чат. Повторите попытку.'
+                      );
+                    } finally {
+                      setDeletingChat(false);
+                      setConfirmDelete(false);
+                    }
+                  }}
+                >
+                  {deleteScope === 'both'
+                    ? 'Удалить у обоих'
+                    : 'Удалить у меня'}
+                </Button>
+              </DialogActions>
+            </Dialog>
+          </>
+        )}
       </header>
       {(history.error || profile.error || actionError) && (
         <div className="chat-error" role="alert">
@@ -431,6 +559,7 @@ export function Conversation({
         editing={editing}
         onEdit={setEditing}
         onMutation={mutation}
+        onTyping={onTyping}
         disabled={!!peerId && !profile.data}
       />
     </main>

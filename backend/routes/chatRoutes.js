@@ -3,7 +3,11 @@ const { Types } = require('mongoose')
 const User = require('../models/User')
 const Post = require('../models/Post')
 const auth = require('../middleware/authMiddleware')
-const { validId, idVariants } = require('../services/conversations')
+const {
+  validId,
+  idVariants,
+  conversationFilter,
+} = require('../services/conversations')
 const router = Router()
 router.use((req, res, next) => {
   res.set('Cache-Control', 'private, no-store')
@@ -51,6 +55,7 @@ router.get('/', async (req, res) => {
       {
         $match: {
           recipient: { $ne: null },
+          hiddenFor: { $ne: new Types.ObjectId(id) },
           $or: [
             { 'user._id': { $in: idVariants(id) } },
             { recipient: new Types.ObjectId(id) },
@@ -92,6 +97,28 @@ router.get('/', async (req, res) => {
     )
   } catch {
     res.status(500).json({ message: 'Не удалось загрузить личные чаты.' })
+  }
+})
+router.delete('/:id', async (req, res) => {
+  const peer = req.params.id.toLowerCase()
+  if (!validId(peer) || peer === req.user.id) return res.sendStatus(400)
+  const scope = req.body?.scope ?? 'self'
+  if (!['self', 'both'].includes(scope)) return res.sendStatus(400)
+  try {
+    const filter = conversationFilter(req.user.id, peer)
+    if (scope === 'both') await Post.deleteMany(filter)
+    else
+      await Post.updateMany(filter, {
+        $addToSet: { hiddenFor: new Types.ObjectId(req.user.id) },
+      })
+    req.app.locals.broadcastPosts?.clearChat?.(req.user.id, peer)
+    if (scope === 'both')
+      req.app.locals.broadcastPosts?.clearChat?.(peer, req.user.id)
+    res.json({
+      message: scope === 'both' ? 'Чат удалён у обоих.' : 'Чат удалён у вас.',
+    })
+  } catch {
+    res.status(500).json({ message: 'Не удалось удалить чат.' })
   }
 })
 module.exports = router

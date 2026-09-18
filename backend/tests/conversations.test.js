@@ -111,3 +111,112 @@ test('creation validates a private recipient and ignores a forged author', async
     Post.prototype.save = original.save
   }
 })
+
+test('hidden history and live updates are excluded only for the deleting account', async () => {
+  const post = {
+    user: { _id: a },
+    recipient: b,
+    hiddenFor: [new Types.ObjectId(a)],
+  }
+  assert.equal(canReceive(post, a), false)
+  assert.equal(canReceive(post, b), true)
+  const original = Post.find
+  let filter
+  Post.find = (query) => {
+    filter = query
+    return { sort: () => ({ limit: () => ({ lean: async () => [] }) }) }
+  }
+  try {
+    await controller.getPosts(
+      { user: { id: a }, query: { peer: b } },
+      { json() {} }
+    )
+    assert.equal(String(filter.hiddenFor.$ne), a)
+  } finally {
+    Post.find = original
+  }
+})
+test('delete chat scopes the soft deletion to the authenticated conversation', async () => {
+  const router = require('../routes/chatRoutes')
+  const handler = router.stack.find((layer) => layer.route?.methods.delete)
+    .route.stack[0].handle
+  const original = Post.updateMany
+  let filter, update, notification
+  Post.updateMany = async (query, change) => {
+    filter = query
+    update = change
+  }
+  const broadcastPosts = Object.assign(() => {}, {
+    clearChat: (...args) => {
+      notification = args
+    },
+  })
+  try {
+    await handler(
+      {
+        user: { id: a },
+        params: { id: b },
+        app: { locals: { broadcastPosts } },
+      },
+      { json() {} }
+    )
+    assert.deepEqual(filter, conversationFilter(a, b))
+    assert.equal(String(update.$addToSet.hiddenFor), a)
+    assert.deepEqual(notification, [a, b])
+    filter = null
+    await handler(
+      { user: { id: a }, params: { id: a } },
+      {
+        sendStatus(code) {
+          assert.equal(code, 400)
+        },
+      }
+    )
+    assert.equal(filter, null)
+  } finally {
+    Post.updateMany = original
+  }
+})
+
+test('deletion for both removes only this conversation and notifies both accounts', async () => {
+  const router = require('../routes/chatRoutes')
+  const handler = router.stack.find((layer) => layer.route?.methods.delete)
+    .route.stack[0].handle
+  const original = Post.deleteMany
+  let filter
+  const notifications = []
+  Post.deleteMany = async (query) => {
+    filter = query
+  }
+  const broadcastPosts = Object.assign(() => {}, {
+    clearChat: (...args) => notifications.push(args),
+  })
+  try {
+    await handler(
+      {
+        user: { id: a },
+        params: { id: b },
+        body: { scope: 'both', userId: c },
+        app: { locals: { broadcastPosts } },
+      },
+      { json() {} }
+    )
+    assert.deepEqual(filter, conversationFilter(a, b))
+    assert.deepEqual(notifications, [
+      [a, b],
+      [b, a],
+    ])
+    filter = null
+    await handler(
+      { user: { id: a }, params: { id: b }, body: { scope: 'everyone' } },
+      {
+        sendStatus(code) {
+          assert.equal(code, 400)
+        },
+      }
+    )
+    assert.equal(filter, null)
+  } finally {
+    Post.deleteMany = original
+  }
+})

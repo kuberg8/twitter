@@ -1,6 +1,6 @@
 import { MemoryRouter } from 'react-router-dom';
-import { getChats, getUsers, getChatUser } from '../api/chats';
-import React from 'react';
+import { getChats, getUsers, getChatUser, deleteChat } from '../api/chats';
+import React, { act } from 'react';
 import {
   render as renderUI,
   screen,
@@ -20,6 +20,7 @@ jest.mock('../api/posts', () => ({
 const mockDispatch = jest.fn();
 jest.mock('react-redux', () => ({ useDispatch: () => mockDispatch }));
 jest.mock('../api/chats', () => ({
+  deleteChat: jest.fn().mockResolvedValue({}),
   getChats: jest.fn(),
   getUsers: jest.fn(),
   getChatUser: jest.fn(),
@@ -50,7 +51,10 @@ test('shows edit controls only for the owner and saves edits through the API', a
   updatePost.mockResolvedValue({});
   render(<Posts userId="u1" />);
   fireEvent.click(
-    await screen.findByRole('button', { name: 'Редактировать сообщение' })
+    await screen.findByRole('button', { name: 'Действия с сообщением' })
+  );
+  fireEvent.click(
+    screen.getByRole('menuitem', { name: 'Редактировать сообщение' })
   );
   fireEvent.change(screen.getByRole('textbox', { name: 'Сообщение' }), {
     target: { value: 'Обновлено' },
@@ -121,4 +125,87 @@ test('opens a private chat, sends to its recipient and preserves the general-cha
   );
   expect(global.WebSocket).toHaveBeenCalledTimes(1);
   expect(getPosts.mock.calls.filter(([peer]) => peer === '').length).toBe(1);
+});
+
+test('deletes a private chat only after confirming in its menu', async () => {
+  render(<Posts userId="u1" token="token" />);
+  await screen.findByText('Привет');
+  fireEvent.click(screen.getByRole('button', { name: 'Новый чат' }));
+  fireEvent.click(await screen.findByRole('button', { name: /Борис/ }));
+  await screen.findByRole('heading', { level: 1, name: /Борис/ });
+  fireEvent.click(screen.getByRole('button', { name: 'Действия с чатом' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Удалить чат' }));
+  expect(deleteChat).not.toHaveBeenCalled();
+  expect(
+    screen.getByText(/У собеседника сообщения останутся/)
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Удалить у меня' }));
+  await waitFor(() => expect(deleteChat).toHaveBeenCalledWith('peer', 'self'));
+  await screen.findByRole('heading', { level: 1, name: 'Общий чат' });
+});
+
+test('shows peer presence and typing events, sends typing and clears status on disconnect', async () => {
+  render(<Posts userId="u1" token="token" />);
+  await screen.findByText('Привет');
+  fireEvent.click(screen.getByRole('button', { name: 'Новый чат' }));
+  fireEvent.click(await screen.findByRole('button', { name: /Борис/ }));
+  await screen.findByRole('heading', { level: 1, name: /Борис/ });
+  const socket = WebSocket.mock.results[0].value;
+  socket.readyState = 1;
+  await act(async () =>
+    socket.onmessage({
+      data: JSON.stringify({ type: 'ready', users: ['peer'] }),
+    })
+  );
+  expect(screen.getByText('В сети')).toBeInTheDocument();
+  act(() =>
+    socket.onmessage({
+      data: JSON.stringify({
+        type: 'typing',
+        peerId: 'peer',
+        userId: 'peer',
+        active: true,
+      }),
+    })
+  );
+  expect(screen.getByText('Печатает…')).toBeInTheDocument();
+  act(() =>
+    socket.onmessage({
+      data: JSON.stringify({
+        type: 'typing',
+        peerId: 'peer',
+        userId: 'peer',
+        active: false,
+      }),
+    })
+  );
+  expect(screen.queryByText('Печатает…')).not.toBeInTheDocument();
+  const input = screen.getByRole('textbox', { name: 'Сообщение' });
+  fireEvent.change(input, { target: { value: 'Текст' } });
+  expect(socket.send).toHaveBeenCalledWith(
+    JSON.stringify({ type: 'typing', peerId: 'peer', active: true })
+  );
+  fireEvent.blur(input);
+  expect(socket.send).toHaveBeenLastCalledWith(
+    JSON.stringify({ type: 'typing', peerId: 'peer', active: false })
+  );
+  act(() => socket.onclose({ code: 1006 }));
+  expect(screen.getByText('Статус недоступен')).toBeInTheDocument();
+});
+
+test('explicitly selects deletion for both participants', async () => {
+  render(<Posts userId="u1" token="token" />);
+  await screen.findByText('Привет');
+  fireEvent.click(screen.getByRole('button', { name: 'Новый чат' }));
+  fireEvent.click(await screen.findByRole('button', { name: /Борис/ }));
+  await screen.findByRole('heading', { level: 1, name: /Борис/ });
+  fireEvent.click(screen.getByRole('button', { name: 'Действия с чатом' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Удалить чат' }));
+  expect(screen.getByRole('radio', { name: 'Только у меня' })).toBeChecked();
+  fireEvent.click(screen.getByRole('radio', { name: 'У обоих' }));
+  expect(screen.getByText(/Восстановить её не получится/)).toBeInTheDocument();
+  expect(deleteChat).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Удалить у обоих' }));
+  await waitFor(() => expect(deleteChat).toHaveBeenCalledWith('peer', 'both'));
+  await screen.findByRole('heading', { level: 1, name: 'Общий чат' });
 });

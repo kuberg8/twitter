@@ -4,6 +4,8 @@ import '@testing-library/jest-dom';
 import PushNotifications from './PushNotifications';
 import axios from '../utils/axios';
 import {
+  getPushPreference,
+  setPushPreference,
   disablePush,
   getPushRegistration,
   savePushSubscription,
@@ -11,6 +13,9 @@ import {
 
 jest.mock('../utils/axios', () => ({ get: jest.fn() }));
 jest.mock('../utils/pushNotifications', () => ({
+  getPushPreference: jest.fn(),
+  getPushRecipient: jest.fn().mockResolvedValue(null),
+  setPushPreference: jest.fn(),
   applicationKey: () => new Uint8Array([1, 2]),
   disablePush: jest.fn(),
   getPushRegistration: jest.fn(),
@@ -22,6 +27,7 @@ const originalNotification = window.Notification;
 let subscribe;
 beforeEach(() => {
   jest.clearAllMocks();
+  getPushPreference.mockReturnValue(false);
   window.Notification = {
     permission: 'default',
     requestPermission: jest.fn().mockResolvedValue('granted'),
@@ -93,4 +99,37 @@ test('rolls back browser subscription when saving it on the server fails', async
   expect(
     screen.getByRole('button', { name: 'Включить push-уведомления' })
   ).toBeEnabled();
+});
+
+test('restores opted-in notifications after login without requesting permission again', async () => {
+  getPushPreference.mockReturnValue(true);
+  Notification.permission = 'granted';
+  render(<PushNotifications userId="u1" />);
+  await screen.findByRole('button', { name: 'Отключить push-уведомления' });
+  expect(Notification.requestPermission).not.toHaveBeenCalled();
+  expect(subscribe).toHaveBeenCalledTimes(1);
+  expect(savePushSubscription).toHaveBeenCalledWith(
+    { endpoint: 'device' },
+    'u1'
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Отключить push-уведомления' })
+  );
+  await ready();
+  expect(setPushPreference).toHaveBeenLastCalledWith('u1', false);
+});
+test('does not restore another account or ask for permission automatically', async () => {
+  getPushPreference.mockImplementation((id) => id === 'other');
+  Notification.permission = 'granted';
+  render(<PushNotifications userId="u1" />);
+  await ready();
+  expect(subscribe).not.toHaveBeenCalled();
+  expect(Notification.requestPermission).not.toHaveBeenCalled();
+});
+test('remembered preference never prompts automatically if permission was reset', async () => {
+  getPushPreference.mockReturnValue(true);
+  render(<PushNotifications userId="u1" />);
+  await ready();
+  expect(subscribe).not.toHaveBeenCalled();
+  expect(Notification.requestPermission).not.toHaveBeenCalled();
 });

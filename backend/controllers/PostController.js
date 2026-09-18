@@ -18,7 +18,10 @@ class PostController {
         return res.status(400).json({ message: 'Некорректный собеседник.' })
       }
       const limit = 50
-      let filter = conversationFilter(req.user.id, peer)
+      let filter = {
+        ...conversationFilter(req.user.id, peer),
+        hiddenFor: { $ne: new Types.ObjectId(req.user.id) },
+      }
       if (req.query?.before !== undefined) {
         try {
           filter = { $and: [filter, parseCursor(req.query.before)] }

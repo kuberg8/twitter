@@ -59,6 +59,46 @@ test('socket requires authentication and private updates reach only the two part
       client.received = []
     }
     const anonymous = addClient()
+    const event = (client, payload) =>
+      client.listeners('message')[0](Buffer.from(JSON.stringify(payload)))
+    await event(clients[0], { type: 'presence', active: true })
+    assert.deepEqual(
+      clients[1].received.find((e) => e.type === 'presence').users,
+      [ids[0]]
+    )
+    await event(clients[0], { type: 'typing', peerId: ids[1], active: true })
+    assert.equal(
+      clients[1].received.some(
+        (e) => e.type === 'typing' && e.active && e.userId === ids[0]
+      ),
+      true
+    )
+    assert.equal(
+      clients[2].received.some((e) => e.type === 'typing'),
+      false
+    )
+    await event(clients[0], { type: 'presence', active: false })
+    assert.equal(
+      clients[1].received.filter((e) => e.type === 'typing').at(-1).active,
+      false
+    )
+    const secondTab = addClient()
+    await event(secondTab, {
+      type: 'auth',
+      token: jwt.sign({ id: ids[0] }, process.env.JWT_SECRET, {
+        expiresIn: '1h',
+      }),
+    })
+    await event(secondTab, { type: 'presence', active: true })
+    await event(clients[0], { type: 'presence', active: true })
+    await event(secondTab, { type: 'presence', active: false })
+    assert.deepEqual(
+      clients[1].received.filter((e) => e.type === 'presence').at(-1).users,
+      [ids[0]]
+    )
+    clients.forEach((client) => {
+      client.received = []
+    })
     const post = {
       user: { _id: ids[0] },
       recipient: ids[1],

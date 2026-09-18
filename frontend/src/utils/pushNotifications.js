@@ -1,5 +1,17 @@
 import axios from './axios';
 
+export const getPushPreference = (userId) => {
+  const value = localStorage.getItem(`push-enabled:${userId}`);
+  return value === null ? null : value === 'true';
+};
+export async function getPushRecipient() {
+  const cache = await caches.open(PUSH_CACHE);
+  const response = await cache.match(stateUrl);
+  return response ? (await response.json()).userId : null;
+}
+export const setPushPreference = (userId, enabled) =>
+  localStorage.setItem(`push-enabled:${userId}`, String(enabled));
+
 export const PUSH_CACHE = 'twitter-push-preferences-v1';
 const base = new URL(
   `${process.env.PUBLIC_URL || ''}/`,

@@ -9,6 +9,7 @@ const Post = new Schema({
     default: null,
     index: true,
   },
+  hiddenFor: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   user: { type: Object, ref: 'User' },
 })
 

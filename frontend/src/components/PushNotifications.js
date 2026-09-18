@@ -4,6 +4,9 @@ import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined
 import axios from '../utils/axios';
 import {
   applicationKey,
+  getPushPreference,
+  getPushRecipient,
+  setPushPreference,
   disablePush,
   getPushRegistration,
   pushSupportMessage,
@@ -26,13 +29,20 @@ export default function PushNotifications({ userId }) {
         return;
       }
       try {
+        const preference = getPushPreference(userId);
+        const restore =
+          preference === true ||
+          (preference === null &&
+            String(await getPushRecipient()) === String(userId));
+        if (cancelled) return;
         await setPushRecipient(null);
         const { data } = await axios.get('/push/config');
         if (cancelled) return;
         setConfig(data);
-        if (!data.enabled) return;
+        if (!data.enabled || !restore) return;
         const registration = await getPushRegistration();
-        const subscription = await registration.pushManager.getSubscription();
+        let subscription = await registration.pushManager.getSubscription();
+        if (cancelled) return;
         if (
           subscription &&
           new Uint8Array(
@@ -40,7 +50,18 @@ export default function PushNotifications({ userId }) {
           ).toString() !== applicationKey(data.publicKey).toString()
         ) {
           await disablePush({ server: false });
-          return;
+          subscription = null;
+        }
+        if (
+          !subscription &&
+          restore &&
+          Notification.permission === 'granted' &&
+          !cancelled
+        ) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: applicationKey(data.publicKey),
+          });
         }
         if (
           subscription &&
@@ -48,7 +69,10 @@ export default function PushNotifications({ userId }) {
           !cancelled
         ) {
           await savePushSubscription(subscription, userId);
-          if (!cancelled) setEnabled(true);
+          if (!cancelled) {
+            setPushPreference(userId, true);
+            setEnabled(true);
+          }
         }
       } catch {
         if (!cancelled)
@@ -69,6 +93,7 @@ export default function PushNotifications({ userId }) {
     try {
       if (enabled) {
         await disablePush();
+        setPushPreference(userId, false);
         setEnabled(false);
         return;
       }
@@ -78,7 +103,10 @@ export default function PushNotifications({ userId }) {
         );
       }
       // Request permission within the button gesture, before any network awaits (iOS).
-      const permission = await Notification.requestPermission();
+      const permission =
+        Notification.permission === 'granted'
+          ? 'granted'
+          : await Notification.requestPermission();
       if (permission !== 'granted')
         throw new Error(
           'Разрешение не получено. Уведомления остаются выключенными.'
@@ -111,6 +139,7 @@ export default function PushNotifications({ userId }) {
         await disablePush({ server: false });
         throw err;
       }
+      setPushPreference(userId, true);
       setEnabled(true);
     } catch (err) {
       setError(

@@ -10,11 +10,20 @@ export default function MessageComposer({
   onEdit,
   onMutation,
   disabled,
+  onTyping,
 }) {
   const [value, setValue] = useState(drafts.current[peerId] || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const input = useRef(null);
+  const typingTimer = useRef(null);
+  useEffect(
+    () => () => {
+      clearTimeout(typingTimer.current);
+      onTyping?.(peerId, false);
+    },
+    [onTyping, peerId]
+  );
   useEffect(() => {
     setValue(editing ? editing.message : drafts.current[peerId] || '');
     if (editing) input.current?.focus();
@@ -27,6 +36,8 @@ export default function MessageComposer({
   const send = async (event) => {
     event.preventDefault();
     if (!value.trim() || saving || disabled) return;
+    onTyping?.(peerId, false);
+    clearTimeout(typingTimer.current);
     setSaving(true);
     setError('');
     const submitted = value;
@@ -83,7 +94,16 @@ export default function MessageComposer({
           value={value}
           maxLength={5000}
           disabled={saving || disabled}
+          onBlur={() => onTyping?.(peerId, false)}
           onChange={(event) => {
+            if (!editing) {
+              onTyping?.(peerId, !!event.target.value.trim());
+              clearTimeout(typingTimer.current);
+              typingTimer.current = setTimeout(
+                () => onTyping?.(peerId, false),
+                3000
+              );
+            }
             setValue(event.target.value);
             if (!editing) drafts.current[peerId] = event.target.value;
           }}

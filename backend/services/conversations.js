@@ -19,6 +19,7 @@ function conversationFilter(userId, peerId) {
   }
 }
 function canReceive(post, userId) {
+  if (post.hiddenFor?.some((id) => String(id) === String(userId))) return false
   return (
     !post.recipient ||
     String(post.recipient) === String(userId) ||
