@@ -95,6 +95,11 @@ module.exports = (server) => {
       }
     })
   }
+  broadcastPosts.unreadChanged = (userId) => {
+    wss.clients.forEach((ws) => {
+      if (ws.userId === String(userId)) send(ws, { type: 'unread:changed' })
+    })
+  }
   broadcastPosts.clearChat = (userId, peerId) => {
     wss.clients.forEach((ws) => {
       if (ws.userId === String(userId))

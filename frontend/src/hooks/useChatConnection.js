@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { logout } from '../store/userSlice';
 import { getPosts } from '../api/posts';
-import { getChats } from '../api/chats';
+import { getChats, loadUnread } from '../api/chats';
 import { applyMessageChange, messageKey } from '../utils/chatCache';
 const WS_URL = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:3000';
 export const loadMessages = async (peer) => {
@@ -36,11 +36,21 @@ export default function useChatConnection(cache, token, peerId) {
     let socket;
     let retry;
     let listTimer;
+    let unreadTimer;
+    const refreshUnread = () => {
+      cache.invalidate('unread');
+      clearTimeout(unreadTimer);
+      unreadTimer = setTimeout(() => {
+        if (!document.hidden && !disposed)
+          cache.read('unread', loadUnread, { force: true }).catch(() => {});
+      }, 250);
+    };
     let online = false;
     let attempts = 0;
     let lastReply = Date.now();
     const refresh = () => {
       if (document.hidden || disposed) return;
+      cache.read('unread', loadUnread, { force: true }).catch(() => {});
       const peer = currentPeer.current;
       cache
         .read(messageKey(peer), () => loadMessages(peer), { force: true })
@@ -81,7 +91,9 @@ export default function useChatConnection(cache, token, peerId) {
                 : null,
             }));
           }
+          if (event.type === 'unread:changed') refreshUnread();
           if (event.type === 'chat:deleted') {
+            refreshUnread();
             cache.update(messageKey(event.peerId), () => ({
               posts: [],
               nextCursor: null,
@@ -94,6 +106,7 @@ export default function useChatConnection(cache, token, peerId) {
             refresh();
           }
           if (event.type === 'posts:changed') {
+            refreshUnread();
             const peer = event.peerId || '';
             if (
               event.post &&
@@ -180,6 +193,7 @@ export default function useChatConnection(cache, token, peerId) {
     window.addEventListener('online', refresh);
     return () => {
       disposed = true;
+      clearTimeout(unreadTimer);
       clearTimeout(retry);
       clearTimeout(listTimer);
       clearInterval(fallback);

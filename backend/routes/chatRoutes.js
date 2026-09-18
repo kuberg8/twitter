@@ -2,6 +2,8 @@ const { Router } = require('express')
 const { Types } = require('mongoose')
 const User = require('../models/User')
 const Post = require('../models/Post')
+const ChatRead = require('../models/ChatRead')
+const { readPosition, unreadFilter } = require('../services/unread')
 const auth = require('../middleware/authMiddleware')
 const {
   validId,
@@ -14,6 +16,65 @@ router.use((req, res, next) => {
   next()
 })
 router.use(auth)
+router.get('/unread', async (req, res) => {
+  try {
+    const states = await ChatRead.find({ user: req.user.id }).lean()
+    const counts = await Post.aggregate([
+      { $match: unreadFilter(req.user.id, states) },
+      {
+        $group: {
+          _id: {
+            $cond: [
+              { $eq: [{ $ifNull: ['$recipient', null] }, null] },
+              'general',
+              { $toString: '$user._id' },
+            ],
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ])
+    res.json(Object.fromEntries(counts.map((row) => [row._id, row.count])))
+  } catch {
+    res
+      .status(500)
+      .json({ message: 'Не удалось загрузить непрочитанные сообщения.' })
+  }
+})
+router.post('/:id/read', async (req, res) => {
+  const peer = req.params.id.toLowerCase()
+  if (
+    (peer !== 'general' && (!validId(peer) || peer === req.user.id)) ||
+    !validId(req.body?.messageId)
+  )
+    return res.sendStatus(400)
+  try {
+    const post = await Post.findOne({
+      ...conversationFilter(req.user.id, peer === 'general' ? null : peer),
+      _id: req.body.messageId,
+      hiddenFor: { $ne: new Types.ObjectId(req.user.id) },
+    })
+      .select('_id created_at')
+      .lean()
+    if (!post) return res.sendStatus(404)
+    const key = { user: req.user.id, peer }
+    const update = { $max: { position: readPosition(post) } }
+    let result
+    try {
+      result = await ChatRead.updateOne(key, update, { upsert: true })
+    } catch (error) {
+      if (error.code !== 11000) throw error
+      result = await ChatRead.updateOne(key, update)
+    }
+    if (result.modifiedCount || result.upsertedCount)
+      req.app.locals.broadcastPosts?.unreadChanged?.(req.user.id)
+    res.sendStatus(204)
+  } catch {
+    res
+      .status(500)
+      .json({ message: 'Не удалось отметить сообщения прочитанными.' })
+  }
+})
 router.get('/users', async (req, res) => {
   try {
     const query =

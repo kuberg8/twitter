@@ -1,11 +1,10 @@
-import TypingIndicator from './TypingIndicator';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, IconButton } from '@mui/material';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import { getChats, getUsers } from '../api/chats';
+import { getChats, getUsers, loadUnread } from '../api/chats';
 import useCachedResource from '../hooks/useCachedResource';
 export const userName = (user) =>
   [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Участник';
@@ -22,6 +21,11 @@ export default function ChatNavigation({
     error,
     refresh,
   } = useCachedResource(cache, 'chats', loadChats);
+  const {
+    data: unread = {},
+    error: unreadError,
+    refresh: refreshUnread,
+  } = useCachedResource(cache, 'unread', loadUnread);
   const [query, setQuery] = useState('');
   const [choosing, setChoosing] = useState(false);
   const choose = (peer) => {
@@ -57,12 +61,13 @@ export default function ChatNavigation({
           <strong>Общий чат</strong>
           <small>
             {typingPeers.includes('') ? (
-              <TypingIndicator general />
+              <span className="chat-typing">Кто-то печатает…</span>
             ) : (
               'Обсуждаем всё вместе'
             )}
           </small>
         </span>
+        <UnreadBadge count={unread.general} />
       </button>
       <div className="chat-list-heading">
         <span>Личные сообщения</span>
@@ -79,10 +84,18 @@ export default function ChatNavigation({
         </IconButton>
       </div>
       {choosing && <UserSearch cache={cache} onChoose={choose} />}
-      {error && (
+      {(error || unreadError) && (
         <div className="chat-list-error" role="alert">
-          Не удалось обновить диалоги.
-          <Button size="small" onClick={() => refresh().catch(() => {})}>
+          {error
+            ? 'Не удалось обновить диалоги.'
+            : 'Не удалось обновить счётчики непрочитанных.'}
+          <Button
+            size="small"
+            onClick={() => {
+              if (error) refresh().catch(() => {});
+              if (unreadError) refreshUnread().catch(() => {});
+            }}
+          >
             Повторить
           </Button>
         </div>
@@ -124,9 +137,14 @@ export default function ChatNavigation({
                 </time>
               </span>
               <small>
-                {typingPeers.includes(peer._id) ? <TypingIndicator /> : message}
+                {typingPeers.includes(peer._id) ? (
+                  <span className="chat-typing">Печатает…</span>
+                ) : (
+                  message
+                )}
               </small>
             </span>
+            <UnreadBadge count={unread[peer._id]} />
           </button>
         ))}
         {!filtered.length && !choosing && !error && (
@@ -195,5 +213,17 @@ function UserSearch({ cache, onChoose }) {
         {data?.length === 0 && <p>Участники не найдены.</p>}
       </div>
     </div>
+  );
+}
+
+function UnreadBadge({ count }) {
+  if (!count) return null;
+  return (
+    <span
+      className="unread-badge"
+      aria-label={`Непрочитанных сообщений: ${count}`}
+    >
+      {count > 99 ? '99+' : count}
+    </span>
   );
 }

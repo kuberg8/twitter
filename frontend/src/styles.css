@@ -945,3 +945,33 @@ button {
   align-items: center;
   gap: 4px;
 }
+
+.typing-message {
+  padding-left: 36px;
+}
+.typing-message .typing-bubble {
+  min-width: 62px;
+  padding: 15px 18px;
+  color: var(--accent);
+}
+@media (max-width: 700px) {
+  .typing-message {
+    padding-left: 0;
+  }
+}
+
+.unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

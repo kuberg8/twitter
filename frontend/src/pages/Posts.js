@@ -47,6 +47,7 @@ import {
 } from '../utils/chatCache';
 import useCachedResource from '../hooks/useCachedResource';
 import useChatConnection, { loadMessages } from '../hooks/useChatConnection';
+import useMarkChatRead from '../hooks/useMarkChatRead';
 import useMessageSound from '../hooks/useMessageSound';
 
 export default function Posts(props) {
@@ -132,6 +133,8 @@ function Messenger({ userId, token }) {
         sound={sound}
         onBack={back}
         connected={connected}
+        threadOpen={threadOpen}
+        paused={settings}
         peerOnline={presence.includes(peerId)}
         typing={typing}
         onTyping={sendTyping}
@@ -180,6 +183,8 @@ export function Conversation({
   sound,
   onBack,
   connected,
+  threadOpen,
+  paused,
   peerOnline,
   typing,
   onTyping,
@@ -213,6 +218,15 @@ export function Conversation({
   const preserve = useRef(null);
   const first = useRef(true);
   const alive = useRef(true);
+  useMarkChatRead({
+    cache,
+    peerId,
+    lastMessageId: posts[posts.length - 1]?._id,
+    away,
+    threadOpen,
+    paused,
+    nearBottom,
+  });
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -240,7 +254,7 @@ export function Conversation({
       preserve.current = null;
     } else if (first.current || nearBottom.current) scrollBottom();
     first.current = false;
-  }, [posts, history.data, scrollBottom]);
+  }, [posts, history.data, scrollBottom, typing]);
   const mutation = useCallback(
     (action, post) => {
       if (post)
@@ -335,7 +349,9 @@ export function Conversation({
           <h1>{name}</h1>
           <p>
             {typing ? (
-              <TypingIndicator general={!peerId} />
+              <span className="chat-typing">
+                {peerId ? 'Печатает…' : 'Кто-то печатает…'}
+              </span>
             ) : peerId ? (
               !connected ? (
                 'Статус недоступен'
@@ -544,6 +560,7 @@ export function Conversation({
             );
           })
         )}
+        {typing && <TypingIndicator general={!peerId} />}
       </section>
       {away && (
         <IconButton

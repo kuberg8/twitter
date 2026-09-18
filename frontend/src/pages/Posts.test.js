@@ -1,5 +1,11 @@
 import { MemoryRouter } from 'react-router-dom';
-import { getChats, getUsers, getChatUser, deleteChat } from '../api/chats';
+import {
+  getChats,
+  getUsers,
+  getChatUser,
+  deleteChat,
+  loadUnread,
+} from '../api/chats';
 import React, { act } from 'react';
 import {
   render as renderUI,
@@ -20,6 +26,8 @@ jest.mock('../api/posts', () => ({
 const mockDispatch = jest.fn();
 jest.mock('react-redux', () => ({ useDispatch: () => mockDispatch }));
 jest.mock('../api/chats', () => ({
+  loadUnread: jest.fn().mockResolvedValue({}),
+  markChatRead: jest.fn().mockResolvedValue({}),
   deleteChat: jest.fn().mockResolvedValue({}),
   getChats: jest.fn(),
   getUsers: jest.fn(),
@@ -35,6 +43,7 @@ const message = {
 const NativeWebSocket = global.WebSocket;
 beforeEach(() => {
   jest.clearAllMocks();
+  loadUnread.mockResolvedValue({});
   getChats.mockResolvedValue({ data: [] });
   getUsers.mockResolvedValue({ data: [{ _id: 'peer', first_name: 'Борис' }] });
   getChatUser.mockResolvedValue({ data: { _id: 'peer', first_name: 'Борис' } });
@@ -252,4 +261,24 @@ test('shows typing in the chat list without opening the private conversation', a
   expect(screen.getByRole('button', { name: /Борис/ })).toHaveTextContent(
     'Последнее сообщение'
   );
+});
+
+test('displays unread counts for private and general chats', async () => {
+  loadUnread.mockResolvedValue({ peer: 4, general: 120 });
+  getChats.mockResolvedValue({
+    data: [
+      {
+        peer: { _id: 'peer', first_name: 'Борис' },
+        message: 'Сообщение',
+        created_at: 1700000000000,
+      },
+    ],
+  });
+  render(<Posts userId="u1" token="token" />);
+  expect(
+    await screen.findByLabelText('Непрочитанных сообщений: 4')
+  ).toHaveTextContent('4');
+  expect(
+    await screen.findByLabelText('Непрочитанных сообщений: 120')
+  ).toHaveTextContent('99+');
 });

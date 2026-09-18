@@ -108,6 +108,19 @@ test('socket requires authentication and private updates reach only the two part
       clients[1].received.filter((e) => e.type === 'typing').at(-1).active,
       false
     )
+    broadcast.unreadChanged(ids[0])
+    assert.equal(
+      clients[0].received.filter((e) => e.type === 'unread:changed').length,
+      1
+    )
+    assert.equal(
+      secondTab.received.filter((e) => e.type === 'unread:changed').length,
+      1
+    )
+    assert.equal(
+      clients[1].received.some((e) => e.type === 'unread:changed'),
+      false
+    )
     clients.forEach((client) => {
       client.received = []
     })

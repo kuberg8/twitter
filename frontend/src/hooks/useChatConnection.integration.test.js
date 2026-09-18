@@ -10,7 +10,10 @@ let mockServer;
 const mockDispatch = jest.fn();
 jest.mock('react-redux', () => ({ useDispatch: () => mockDispatch }));
 jest.mock('../api/posts', () => ({ getPosts: async () => ({ data: [] }) }));
-jest.mock('../api/chats', () => ({ getChats: async () => ({ data: [] }) }));
+jest.mock('../api/chats', () => ({
+  getChats: async () => ({ data: [] }),
+  loadUnread: async () => ({}),
+}));
 jest.mock('../../../backend/models/User', () => ({ exists: async () => true }));
 jest.mock('../../../backend/node_modules/jsonwebtoken', () => ({
   verify: (token) => ({ id: token, exp: Math.floor(Date.now() / 1000) + 3600 }),
@@ -40,7 +43,7 @@ afterEach(() => {
 test.each(['private', 'general'])(
   'typing travels through the actual server handler to the other account (%s)',
   async (room) => {
-    createSocketServer({});
+    const broadcast = createSocketServer({});
     global.WebSocket = class {
       constructor() {
         this.readyState = 1;
@@ -81,6 +84,15 @@ test.each(['private', 'general'])(
       act(() => sender.result.current.sendTyping(alicePeer, true));
       await waitFor(() => expect(receiver.result.current.typing).toBe(true));
       expect(sender.result.current.typing).toBe(false);
+      const aliceRead = jest.spyOn(aliceCache, 'read');
+      const bobRead = jest.spyOn(bobCache, 'read');
+      act(() => broadcast.unreadChanged(alice));
+      await waitFor(() =>
+        expect(aliceRead).toHaveBeenCalledWith('unread', expect.any(Function), {
+          force: true,
+        })
+      );
+      expect(bobRead).not.toHaveBeenCalled();
       act(() => sender.result.current.sendTyping(alicePeer, false));
       await waitFor(() => expect(receiver.result.current.typing).toBe(false));
     } finally {
