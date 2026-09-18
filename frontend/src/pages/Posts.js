@@ -1,4 +1,5 @@
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import TypingIndicator from '../components/TypingIndicator';
 import ThemeChoice from '../components/ThemeChoice';
 import React, {
   useCallback,
@@ -59,11 +60,8 @@ function Messenger({ userId, token }) {
   const [cache] = useState(createChatCache);
   const drafts = useRef(Object.create(null));
   const sound = useMessageSound(userId, peerId);
-  const { connected, presence, typing, sendTyping } = useChatConnection(
-    cache,
-    token,
-    peerId
-  );
+  const { connected, presence, typing, typingPeers, sendTyping } =
+    useChatConnection(cache, token, peerId);
   const [settings, setSettings] = useState(false);
   const [error, setError] = useState('');
   const dispatch = useDispatch();
@@ -97,6 +95,7 @@ function Messenger({ userId, token }) {
           onSelect={select}
           cache={cache}
           presence={presence}
+          typingPeers={typingPeers}
         />
         <footer className="sidebar-footer">
           <span className={`connection ${connected ? 'online' : ''}`}>
@@ -336,14 +335,7 @@ export function Conversation({
           <h1>{name}</h1>
           <p>
             {typing ? (
-              <span className="chat-typing" role="status">
-                <span>{peerId ? 'Печатает…' : 'Кто-то печатает…'}</span>
-                <span className="typing-dots" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </span>
-              </span>
+              <TypingIndicator general={!peerId} />
             ) : peerId ? (
               !connected ? (
                 'Статус недоступен'

@@ -31,19 +31,30 @@ module.exports = (server) => {
   }
   const typing = (ws, active) => {
     if (ws.typingPeer === undefined) return
-    wss.clients.forEach((client) => {
-      if (
-        client.userId !== ws.userId &&
-        (!ws.typingPeer || client.userId === ws.typingPeer)
+    const peer = ws.typingPeer
+    if (!active) ws.typingPeer = undefined
+    // Typing belongs to the account/conversation, not an individual tab.
+    const accountTyping =
+      active ||
+      [...wss.clients].some(
+        (client) =>
+          client !== ws &&
+          authorized(client) &&
+          client.active &&
+          Date.now() - client.seen < 45000 &&
+          client.userId === ws.userId &&
+          client.typingPeer === peer &&
+          client.typingUntil > Date.now()
       )
+    wss.clients.forEach((client) => {
+      if (client.userId !== ws.userId && (!peer || client.userId === peer))
         send(client, {
           type: 'typing',
           userId: ws.userId,
-          peerId: ws.typingPeer ? ws.userId : '',
-          active,
+          peerId: peer ? ws.userId : '',
+          active: accountTyping,
         })
     })
-    if (!active) ws.typingPeer = undefined
   }
   const heartbeat = setInterval(() => {
     wss.clients.forEach((ws) => {

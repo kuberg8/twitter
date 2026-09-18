@@ -191,10 +191,18 @@ export default function useChatConnection(cache, token, peerId) {
       socket?.close();
     };
   }, [cache, token, dispatch, sendTyping]);
+  const typingPeers = [
+    ...new Set(
+      Object.values(typing)
+        .filter(Boolean)
+        .map((value) => value.peerId)
+    ),
+  ];
   return {
     connected,
+    typingPeers,
     presence,
-    typing: Object.values(typing).some((value) => value?.peerId === peerId),
+    typing: typingPeers.includes(peerId),
     sendTyping,
   };
 }

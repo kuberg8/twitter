@@ -1,3 +1,4 @@
+import TypingIndicator from './TypingIndicator';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, IconButton } from '@mui/material';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
@@ -14,6 +15,7 @@ export default function ChatNavigation({
   onSelect,
   cache,
   presence = [],
+  typingPeers = [],
 }) {
   const {
     data: chats = [],
@@ -53,7 +55,13 @@ export default function ChatNavigation({
         </span>
         <span className="chat-link-text">
           <strong>Общий чат</strong>
-          <small>Обсуждаем всё вместе</small>
+          <small>
+            {typingPeers.includes('') ? (
+              <TypingIndicator general />
+            ) : (
+              'Обсуждаем всё вместе'
+            )}
+          </small>
         </span>
       </button>
       <div className="chat-list-heading">
@@ -115,7 +123,9 @@ export default function ChatNavigation({
                   })}
                 </time>
               </span>
-              <small>{message}</small>
+              <small>
+                {typingPeers.includes(peer._id) ? <TypingIndicator /> : message}
+              </small>
             </span>
           </button>
         ))}

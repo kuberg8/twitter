@@ -209,3 +209,47 @@ test('explicitly selects deletion for both participants', async () => {
   await waitFor(() => expect(deleteChat).toHaveBeenCalledWith('peer', 'both'));
   await screen.findByRole('heading', { level: 1, name: 'Общий чат' });
 });
+
+test('shows typing in the chat list without opening the private conversation', async () => {
+  getChats.mockResolvedValue({
+    data: [
+      {
+        peer: { _id: 'peer', first_name: 'Борис' },
+        message: 'Последнее сообщение',
+        created_at: 1700000000000,
+      },
+    ],
+  });
+  render(<Posts userId="u1" token="token" />);
+  await screen.findByText('Последнее сообщение');
+  const socket = WebSocket.mock.results[0].value;
+  act(() =>
+    socket.onmessage({
+      data: JSON.stringify({
+        type: 'typing',
+        peerId: 'peer',
+        userId: 'peer',
+        active: true,
+      }),
+    })
+  );
+  expect(screen.getByRole('button', { name: /Борис/ })).toHaveTextContent(
+    'Печатает…'
+  );
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+    'Общий чат'
+  );
+  act(() =>
+    socket.onmessage({
+      data: JSON.stringify({
+        type: 'typing',
+        peerId: 'peer',
+        userId: 'peer',
+        active: false,
+      }),
+    })
+  );
+  expect(screen.getByRole('button', { name: /Борис/ })).toHaveTextContent(
+    'Последнее сообщение'
+  );
+});

@@ -96,6 +96,18 @@ test('socket requires authentication and private updates reach only the two part
       clients[1].received.filter((e) => e.type === 'presence').at(-1).users,
       [ids[0]]
     )
+    // An idle second tab must not cancel typing from the first tab.
+    await event(clients[0], { type: 'typing', peerId: ids[1], active: true })
+    await event(secondTab, { type: 'typing', peerId: ids[1], active: false })
+    assert.equal(
+      clients[1].received.filter((e) => e.type === 'typing').at(-1).active,
+      true
+    )
+    await event(clients[0], { type: 'typing', peerId: ids[1], active: false })
+    assert.equal(
+      clients[1].received.filter((e) => e.type === 'typing').at(-1).active,
+      false
+    )
     clients.forEach((client) => {
       client.received = []
     })
