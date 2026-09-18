@@ -47,6 +47,7 @@ import {
 } from '../utils/chatCache';
 import useCachedResource from '../hooks/useCachedResource';
 import useChatConnection, { loadMessages } from '../hooks/useChatConnection';
+import useMessageEntrance from '../hooks/useMessageEntrance';
 import useMarkChatRead from '../hooks/useMarkChatRead';
 import useMessageSound from '../hooks/useMessageSound';
 
@@ -202,6 +203,7 @@ export function Conversation({
     300000
   );
   const posts = history.data?.posts || EMPTY;
+  const arriving = useMessageEntrance(posts, !!history.data);
   const { notify } = sound;
   const refreshMessages = history.refresh;
   const quiet = useRef(false);
@@ -244,6 +246,9 @@ export function Conversation({
     nearBottom.current = true;
     setAway(false);
   }, []);
+  const followTyping = useCallback(() => {
+    if (nearBottom.current) scrollBottom();
+  }, [scrollBottom]);
   useLayoutEffect(() => {
     if (!scroll.current || !history.data) return;
     if (preserve.current) {
@@ -550,6 +555,7 @@ export function Conversation({
                 )}
                 <Post
                   post={post}
+                  animate={arriving.has(post._id)}
                   deletePost={remove}
                   setEdit={setEditing}
                   isOwner={
@@ -560,7 +566,11 @@ export function Conversation({
             );
           })
         )}
-        {typing && <TypingIndicator general={!peerId} />}
+        <TypingIndicator
+          general={!peerId}
+          active={typing}
+          onResize={followTyping}
+        />
       </section>
       {away && (
         <IconButton

@@ -12,7 +12,7 @@ import {
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-function Post({ post, deletePost, setEdit, isOwner }) {
+function Post({ post, deletePost, setEdit, isOwner, animate = false }) {
   const [anchor, setAnchor] = useState(null);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -21,7 +21,9 @@ function Post({ post, deletePost, setEdit, isOwner }) {
     'Участник';
   const date = new Date(post.created_at);
   return (
-    <article className={`message ${isOwner ? 'outgoing' : 'incoming'}`}>
+    <article
+      className={`message ${isOwner ? 'outgoing' : 'incoming'}${animate ? 'message-arriving' : ''}`}
+    >
       <div className={`avatar ${isOwner ? 'own' : ''}`}>
         {name.slice(0, 1).toUpperCase()}
       </div>

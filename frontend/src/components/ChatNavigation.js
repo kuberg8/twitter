@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Button, IconButton } from '@mui/material';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Button, IconButton, Collapse, useMediaQuery } from '@mui/material';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -217,13 +217,27 @@ function UserSearch({ cache, onChoose }) {
 }
 
 function UnreadBadge({ count }) {
-  if (!count) return null;
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const previous = useRef(count || 0);
+  useEffect(() => {
+    if (count) previous.current = count;
+  }, [count]);
+  const displayed = count || previous.current;
   return (
-    <span
-      className="unread-badge"
-      aria-label={`Непрочитанных сообщений: ${count}`}
+    <Collapse
+      in={!!count}
+      orientation="horizontal"
+      timeout={reducedMotion ? 0 : 180}
     >
-      {count > 99 ? '99+' : count}
-    </span>
+      <span
+        className={`unread-badge ${count ? 'badge-visible' : 'badge-hidden'}`}
+        aria-hidden={!count}
+        aria-label={`Непрочитанных сообщений: ${displayed}`}
+      >
+        <span key={displayed} className="unread-number">
+          {displayed > 99 ? '99+' : displayed}
+        </span>
+      </span>
+    </Collapse>
   );
 }
