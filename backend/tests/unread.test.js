@@ -8,8 +8,9 @@ const router = require('../routes/chatRoutes')
 const a = '507f1f77bcf86cd799439011'
 const b = '507f1f77bcf86cd799439012'
 const messageId = '507f1f77bcf86cd799439099'
-const handler = router.stack.find((layer) => layer.route?.path === '/:id/read')
-  .route.stack[0].handle
+const handler = router.stack.find(
+  (layer) => layer.route?.path === '/:id/read' && layer.route.methods.post
+).route.stack[0].handle
 
 test('unread counts exclude own and hidden messages and use an exact timestamp/id boundary', () => {
   const position = readPosition({ _id: messageId, created_at: 1700000000000 })
@@ -113,5 +114,43 @@ test('read watermark is based on an accessible stored message and only moves for
   } finally {
     Post.findOne = originalFind
     ChatRead.updateOne = originalUpdate
+  }
+})
+
+test('receipt lookup exposes only the other participant’s read position for the authenticated conversation', async () => {
+  const get = router.stack.find(
+    (layer) => layer.route?.path === '/:id/read' && layer.route.methods.get
+  ).route.stack[0].handle
+  const original = ChatRead.findOne
+  let filter, response
+  ChatRead.findOne = (query) => {
+    filter = query
+    return {
+      select: () => ({ lean: async () => ({ position: 'stored-position' }) }),
+    }
+  }
+  try {
+    await get(
+      {
+        user: { id: a },
+        params: { id: b },
+        query: { userId: b, peer: 'forged' },
+      },
+      {
+        json: (value) => {
+          response = value
+        },
+      }
+    )
+    assert.deepEqual(filter, { user: b, peer: a })
+    assert.deepEqual(response, { position: 'stored-position' })
+    filter = null
+    await get(
+      { user: { id: a }, params: { id: 'general' } },
+      { sendStatus: (code) => assert.equal(code, 400) }
+    )
+    assert.equal(filter, null)
+  } finally {
+    ChatRead.findOne = original
   }
 })

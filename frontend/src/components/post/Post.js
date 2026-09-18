@@ -9,10 +9,19 @@ import {
   DialogActions,
   Button,
 } from '@mui/material';
+import DoneRoundedIcon from '@mui/icons-material/DoneRounded';
+import DoneAllRoundedIcon from '@mui/icons-material/DoneAllRounded';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-function Post({ post, deletePost, setEdit, isOwner, animate = false }) {
+function Post({
+  post,
+  deletePost,
+  setEdit,
+  isOwner,
+  showReceipt = false,
+  isRead = false,
+}) {
   const [anchor, setAnchor] = useState(null);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -21,9 +30,7 @@ function Post({ post, deletePost, setEdit, isOwner, animate = false }) {
     'Участник';
   const date = new Date(post.created_at);
   return (
-    <article
-      className={`message ${isOwner ? 'outgoing' : 'incoming'}${animate ? 'message-arriving' : ''}`}
-    >
+    <article className={`message ${isOwner ? 'outgoing' : 'incoming'}`}>
       <div className={`avatar ${isOwner ? 'own' : ''}`}>
         {name.slice(0, 1).toUpperCase()}
       </div>
@@ -43,6 +50,20 @@ function Post({ post, deletePost, setEdit, isOwner, animate = false }) {
           )}
         </div>
         <p>{post.message}</p>
+        {isOwner && showReceipt && (
+          <span
+            className={`message-receipt ${isRead ? 'is-read' : ''}`}
+            role="img"
+            aria-label={isRead ? 'Прочитано' : 'Отправлено'}
+            title={isRead ? 'Прочитано собеседником' : 'Отправлено'}
+          >
+            {isRead ? (
+              <DoneAllRoundedIcon fontSize="inherit" />
+            ) : (
+              <DoneRoundedIcon fontSize="inherit" />
+            )}
+          </span>
+        )}
       </div>
       {isOwner && (
         <div className="message-actions">

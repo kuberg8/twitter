@@ -108,6 +108,27 @@ test('socket requires authentication and private updates reach only the two part
       clients[1].received.filter((e) => e.type === 'typing').at(-1).active,
       false
     )
+    broadcast.readReceipt(
+      ids[0],
+      ids[1],
+      '0001700000000000:507f1f77bcf86cd799439099'
+    )
+    assert.equal(
+      clients[1].received.filter((e) => e.type === 'chat:read').length,
+      1
+    )
+    assert.equal(
+      clients[1].received.find((e) => e.type === 'chat:read').peerId,
+      ids[0]
+    )
+    assert.equal(
+      clients[2].received.some((e) => e.type === 'chat:read'),
+      false
+    )
+    assert.equal(
+      clients[0].received.some((e) => e.type === 'chat:read'),
+      false
+    )
     broadcast.unreadChanged(ids[0])
     assert.equal(
       clients[0].received.filter((e) => e.type === 'unread:changed').length,

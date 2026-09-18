@@ -5,6 +5,7 @@ import {
   getChatUser,
   deleteChat,
   loadUnread,
+  loadReadReceipt,
 } from '../api/chats';
 import React, { act } from 'react';
 import {
@@ -26,6 +27,7 @@ jest.mock('../api/posts', () => ({
 const mockDispatch = jest.fn();
 jest.mock('react-redux', () => ({ useDispatch: () => mockDispatch }));
 jest.mock('../api/chats', () => ({
+  loadReadReceipt: jest.fn().mockResolvedValue({ position: null }),
   loadUnread: jest.fn().mockResolvedValue({}),
   markChatRead: jest.fn().mockResolvedValue({}),
   deleteChat: jest.fn().mockResolvedValue({}),
@@ -44,6 +46,7 @@ const NativeWebSocket = global.WebSocket;
 beforeEach(() => {
   jest.clearAllMocks();
   loadUnread.mockResolvedValue({});
+  loadReadReceipt.mockResolvedValue({ position: null });
   getChats.mockResolvedValue({ data: [] });
   getUsers.mockResolvedValue({ data: [{ _id: 'peer', first_name: 'Борис' }] });
   getChatUser.mockResolvedValue({ data: { _id: 'peer', first_name: 'Борис' } });
@@ -281,4 +284,47 @@ test('displays unread counts for private and general chats', async () => {
   expect(
     await screen.findByLabelText('Непрочитанных сообщений: 120')
   ).toHaveTextContent('99+');
+});
+
+test('outgoing private messages receive live read receipts and keep newer positions', async () => {
+  renderUI(
+    <MemoryRouter initialEntries={['/?chat=peer']}>
+      <Posts userId="u1" token="token" />
+    </MemoryRouter>
+  );
+  await screen.findByText('Привет');
+  expect(screen.getByRole('img', { name: 'Отправлено' })).toBeInTheDocument();
+  const socket = WebSocket.mock.results[0].value;
+  act(() =>
+    socket.onmessage({
+      data: JSON.stringify({
+        type: 'chat:read',
+        peerId: 'peer',
+        position: '0001700000000000:p1',
+      }),
+    })
+  );
+  expect(screen.getByRole('img', { name: 'Прочитано' })).toBeInTheDocument();
+  act(() =>
+    socket.onmessage({
+      data: JSON.stringify({
+        type: 'chat:read',
+        peerId: 'peer',
+        position: '0001600000000000:p1',
+      }),
+    })
+  );
+  expect(screen.getByRole('img', { name: 'Прочитано' })).toBeInTheDocument();
+});
+
+test('restores read receipts from the server when opening a private chat', async () => {
+  loadReadReceipt.mockResolvedValue({ position: '0001700000000000:p1' });
+  renderUI(
+    <MemoryRouter initialEntries={['/?chat=peer']}>
+      <Posts userId="u1" token="token" />
+    </MemoryRouter>
+  );
+  expect(
+    await screen.findByRole('img', { name: 'Прочитано' })
+  ).toBeInTheDocument();
 });

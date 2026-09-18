@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { logout } from '../store/userSlice';
 import { getPosts } from '../api/posts';
-import { getChats, loadUnread } from '../api/chats';
+import { getChats, loadUnread, loadReadReceipt } from '../api/chats';
+import { receiptKey, mergeReceipt } from '../utils/readReceipts';
 import { applyMessageChange, messageKey } from '../utils/chatCache';
 const WS_URL = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:3000';
 export const loadMessages = async (peer) => {
@@ -52,6 +53,10 @@ export default function useChatConnection(cache, token, peerId) {
       if (document.hidden || disposed) return;
       cache.read('unread', loadUnread, { force: true }).catch(() => {});
       const peer = currentPeer.current;
+      if (peer)
+        cache
+          .read(receiptKey(peer), () => loadReadReceipt(peer), { force: true })
+          .catch(() => {});
       cache
         .read(messageKey(peer), () => loadMessages(peer), { force: true })
         .catch(() => {});
@@ -90,6 +95,13 @@ export default function useChatConnection(cache, token, peerId) {
                 ? { peerId: event.peerId, expires: Date.now() + 5500 }
                 : null,
             }));
+          }
+          if (event.type === 'chat:read') {
+            const key = receiptKey(event.peerId);
+            cache.prime(key, { position: null });
+            cache.update(key, (previous) =>
+              mergeReceipt(previous, { position: event.position })
+            );
           }
           if (event.type === 'unread:changed') refreshUnread();
           if (event.type === 'chat:deleted') {

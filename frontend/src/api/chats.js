@@ -10,3 +10,6 @@ export const getUnread = () => axios.get('/chats/unread');
 export const markChatRead = (peer, messageId) =>
   axios.post(`/chats/${peer || 'general'}/read`, { messageId });
 export const loadUnread = async () => (await getUnread()).data;
+
+export const loadReadReceipt = async (peer) =>
+  peer ? (await axios.get(`/chats/${peer}/read`)).data : { position: null };

@@ -41,6 +41,19 @@ router.get('/unread', async (req, res) => {
       .json({ message: 'Не удалось загрузить непрочитанные сообщения.' })
   }
 })
+router.get('/:id/read', async (req, res) => {
+  const peer = req.params.id.toLowerCase()
+  if (!validId(peer) || peer === req.user.id) return res.sendStatus(400)
+  try {
+    // Only the other participant's watermark for THIS user's conversation.
+    const state = await ChatRead.findOne({ user: peer, peer: req.user.id })
+      .select('position')
+      .lean()
+    res.json({ position: state?.position || null })
+  } catch {
+    res.status(500).json({ message: 'Не удалось загрузить статус прочтения.' })
+  }
+})
 router.post('/:id/read', async (req, res) => {
   const peer = req.params.id.toLowerCase()
   if (
@@ -66,8 +79,15 @@ router.post('/:id/read', async (req, res) => {
       if (error.code !== 11000) throw error
       result = await ChatRead.updateOne(key, update)
     }
-    if (result.modifiedCount || result.upsertedCount)
+    if (result.modifiedCount || result.upsertedCount) {
       req.app.locals.broadcastPosts?.unreadChanged?.(req.user.id)
+      if (peer !== 'general')
+        req.app.locals.broadcastPosts?.readReceipt?.(
+          req.user.id,
+          peer,
+          readPosition(post)
+        )
+    }
     res.sendStatus(204)
   } catch {
     res

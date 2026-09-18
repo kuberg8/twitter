@@ -37,7 +37,12 @@ import ChatNavigation, { userName } from '../components/ChatNavigation';
 import PushNotifications from '../components/PushNotifications';
 import MessageComposer from '../components/MessageComposer';
 import Post from '../components/post/Post';
-import { getChatUser, getChats, deleteChat } from '../api/chats';
+import {
+  getChatUser,
+  getChats,
+  deleteChat,
+  loadReadReceipt,
+} from '../api/chats';
 import { getPosts, deletePost } from '../api/posts';
 import { disablePush } from '../utils/pushNotifications';
 import {
@@ -47,6 +52,8 @@ import {
 } from '../utils/chatCache';
 import useCachedResource from '../hooks/useCachedResource';
 import useChatConnection, { loadMessages } from '../hooks/useChatConnection';
+import { receiptKey, messagePosition } from '../utils/readReceipts';
+import MessageReveal from '../components/MessageReveal';
 import useMessageEntrance from '../hooks/useMessageEntrance';
 import useMarkChatRead from '../hooks/useMarkChatRead';
 import useMessageSound from '../hooks/useMessageSound';
@@ -202,6 +209,8 @@ export function Conversation({
     peerLoader,
     300000
   );
+  const receiptLoader = useCallback(() => loadReadReceipt(peerId), [peerId]);
+  const receipt = useCachedResource(cache, receiptKey(peerId), receiptLoader);
   const posts = history.data?.posts || EMPTY;
   const arriving = useMessageEntrance(posts, !!history.data);
   const { notify } = sound;
@@ -553,15 +562,24 @@ export function Conversation({
                     <span>{label}</span>
                   </div>
                 )}
-                <Post
-                  post={post}
+                <MessageReveal
                   animate={arriving.has(post._id)}
-                  deletePost={remove}
-                  setEdit={setEditing}
-                  isOwner={
-                    String(post.user?._id || post.user) === String(userId)
-                  }
-                />
+                  onResize={followTyping}
+                >
+                  <Post
+                    post={post}
+                    showReceipt={!!peerId}
+                    isRead={
+                      !!receipt.data?.position &&
+                      messagePosition(post) <= receipt.data.position
+                    }
+                    deletePost={remove}
+                    setEdit={setEditing}
+                    isOwner={
+                      String(post.user?._id || post.user) === String(userId)
+                    }
+                  />
+                </MessageReveal>
               </React.Fragment>
             );
           })

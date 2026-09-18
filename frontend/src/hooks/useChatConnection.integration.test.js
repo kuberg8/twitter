@@ -13,6 +13,7 @@ jest.mock('../api/posts', () => ({ getPosts: async () => ({ data: [] }) }));
 jest.mock('../api/chats', () => ({
   getChats: async () => ({ data: [] }),
   loadUnread: async () => ({}),
+  loadReadReceipt: async () => ({ position: null }),
 }));
 jest.mock('../../../backend/models/User', () => ({ exists: async () => true }));
 jest.mock('../../../backend/node_modules/jsonwebtoken', () => ({

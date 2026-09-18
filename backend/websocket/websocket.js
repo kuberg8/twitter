@@ -95,6 +95,12 @@ module.exports = (server) => {
       }
     })
   }
+  broadcastPosts.readReceipt = (reader, peer, position) => {
+    wss.clients.forEach((ws) => {
+      if (ws.userId === String(peer))
+        send(ws, { type: 'chat:read', peerId: String(reader), position })
+    })
+  }
   broadcastPosts.unreadChanged = (userId) => {
     wss.clients.forEach((ws) => {
       if (ws.userId === String(userId)) send(ws, { type: 'unread:changed' })

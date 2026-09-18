@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, IconButton, Collapse, useMediaQuery } from '@mui/material';
+import { Button, IconButton } from '@mui/material';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -217,18 +217,13 @@ function UserSearch({ cache, onChoose }) {
 }
 
 function UnreadBadge({ count }) {
-  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const previous = useRef(count || 0);
   useEffect(() => {
     if (count) previous.current = count;
   }, [count]);
   const displayed = count || previous.current;
   return (
-    <Collapse
-      in={!!count}
-      orientation="horizontal"
-      timeout={reducedMotion ? 0 : 180}
-    >
+    <span className="unread-slot">
       <span
         className={`unread-badge ${count ? 'badge-visible' : 'badge-hidden'}`}
         aria-hidden={!count}
@@ -238,6 +233,6 @@ function UnreadBadge({ count }) {
           {displayed > 99 ? '99+' : displayed}
         </span>
       </span>
-    </Collapse>
+    </span>
   );
 }
