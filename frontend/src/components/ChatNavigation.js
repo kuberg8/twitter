@@ -17,7 +17,8 @@ export default function ChatNavigation({
   typingPeers = [],
 }) {
   const {
-    data: chats = [],
+    data: chats,
+    loading,
     error,
     refresh,
   } = useCachedResource(cache, 'chats', loadChats);
@@ -34,7 +35,8 @@ export default function ChatNavigation({
     setChoosing(false);
     setQuery('');
   };
-  const filtered = chats.filter(({ peer }) =>
+  const waiting = !error && (chats === undefined || (loading && !chats.length));
+  const filtered = (chats || []).filter(({ peer }) =>
     userName(peer).toLocaleLowerCase().includes(query.toLocaleLowerCase())
   );
   return (
@@ -100,7 +102,12 @@ export default function ChatNavigation({
           </Button>
         </div>
       )}
-      <div className="chat-list">
+      <div className="chat-list" aria-busy={waiting}>
+        {waiting && (
+          <div className="chat-list-empty" role="status">
+            Загружаем чаты…
+          </div>
+        )}
         {filtered.map(({ peer, message, created_at }) => (
           <button
             className={`chat-link ${peerId === peer._id ? 'selected' : ''}`}
@@ -147,16 +154,22 @@ export default function ChatNavigation({
             <UnreadBadge count={unread[peer._id]} />
           </button>
         ))}
-        {!filtered.length && !choosing && !error && (
-          <div className="chat-list-empty">
-            <p>
-              {query ? 'Таких диалогов пока нет' : 'Ваши разговоры будут здесь'}
-            </p>
-            <Button size="small" onClick={() => setChoosing(true)}>
-              Начать переписку
-            </Button>
-          </div>
-        )}
+        {!waiting &&
+          chats !== undefined &&
+          !filtered.length &&
+          !choosing &&
+          !error && (
+            <div className="chat-list-empty">
+              <p>
+                {query
+                  ? 'Таких диалогов пока нет'
+                  : 'Ваши разговоры будут здесь'}
+              </p>
+              <Button size="small" onClick={() => setChoosing(true)}>
+                Начать переписку
+              </Button>
+            </div>
+          )}
       </div>
     </nav>
   );
