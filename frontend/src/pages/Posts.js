@@ -335,17 +335,26 @@ export function Conversation({
         <div className="conversation-title">
           <h1>{name}</h1>
           <p>
-            {typing
-              ? peerId
-                ? 'Печатает…'
-                : 'Кто-то печатает…'
-              : peerId
-                ? !connected
-                  ? 'Статус недоступен'
-                  : peerOnline
-                    ? 'В сети'
-                    : 'Не в сети'
-                : 'Пространство для всех участников'}
+            {typing ? (
+              <span className="chat-typing" role="status">
+                <span>{peerId ? 'Печатает…' : 'Кто-то печатает…'}</span>
+                <span className="typing-dots" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              </span>
+            ) : peerId ? (
+              !connected ? (
+                'Статус недоступен'
+              ) : peerOnline ? (
+                'В сети'
+              ) : (
+                'Не в сети'
+              )
+            ) : (
+              'Пространство для всех участников'
+            )}
           </p>
         </div>
         {peerId && (

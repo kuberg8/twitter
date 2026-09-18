@@ -27,7 +27,11 @@ export default function AuthLayout({ title, subtitle, children }) {
               Всё начинается с «привет» <span>✦</span>
             </div>
             <div className="art-bubble reply">Привет! Давай обсудим.</div>
-            <div className="art-dots">● ● ●</div>
+            <div className="art-dots">
+              <span />
+              <span />
+              <span />
+            </div>
           </div>
         </div>
         <span className="story-footer">Ваши мысли заслуживают разговора.</span>

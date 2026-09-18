@@ -108,14 +108,45 @@ button:focus-visible {
   border-radius: 18px 18px 3px 18px;
 }
 .art-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   background: #dbe4ca;
-  border-radius: 16px;
+  border-radius: 16px 16px 16px 3px;
   width: 75px;
-  padding: 12px 18px;
-  font-size: 10px;
-  letter-spacing: 3px;
+  height: 42px;
   margin-top: 22px;
   color: #7d8f63;
+}
+.art-dots span,
+.typing-dots > span {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
+  animation: auth-typing 1.4s ease-in-out infinite;
+}
+.art-dots span:nth-child(2),
+.typing-dots > span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.art-dots span:nth-child(3),
+.typing-dots > span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes auth-typing {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 .auth-form-panel {
   display: flex;
@@ -893,8 +924,24 @@ button {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .art-dots span,
+  .typing-dots > span {
+    animation: none;
+  }
   * {
     scroll-behavior: auto !important;
     transition: none !important;
   }
+}
+
+.chat-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+}
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
