@@ -3,8 +3,8 @@
 }
 body {
   margin: 0;
-  color: #242d25;
-  background: #f7f8f5;
+  color: var(--text);
+  background: var(--app-bg);
 }
 button,
 a,
@@ -16,7 +16,7 @@ a {
 }
 a:focus-visible,
 button:focus-visible {
-  outline: 3px solid #a9bc83;
+  outline: 3px solid var(--accent);
   outline-offset: 4px;
 }
 .brand {
@@ -29,7 +29,7 @@ button:focus-visible {
   letter-spacing: -1.4px;
 }
 .brand-icon {
-  background: #526846;
+  background: var(--accent);
   color: #fff;
   width: 40px;
   height: 40px;
@@ -38,17 +38,17 @@ button:focus-visible {
   border-radius: 13px;
 }
 .brand-dot {
-  color: #80925f;
+  color: var(--accent);
   margin-left: -9px;
 }
 .eyebrow {
   font-size: 11px;
   letter-spacing: 1.8px;
   font-weight: 700;
-  color: #7b886d;
+  color: var(--muted);
 }
 .muted {
-  color: #778071;
+  color: var(--muted);
   line-height: 1.7;
 }
 .auth-layout {
@@ -58,7 +58,7 @@ button:focus-visible {
 }
 .auth-story {
   padding: 48px 64px;
-  background: #e9eedf;
+  background: var(--selected);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -76,14 +76,14 @@ button:focus-visible {
   margin: 25px 0;
 }
 .auth-story p {
-  color: #68765d;
+  color: var(--muted);
   line-height: 1.8;
   font-size: 18px;
 }
 .story-footer,
 .auth-footer {
   font-size: 13px;
-  color: #778071;
+  color: var(--muted);
 }
 .conversation-art {
   margin-top: 50px;
@@ -94,14 +94,14 @@ button:focus-visible {
   border-radius: 18px 18px 18px 3px;
   padding: 22px;
   transform: rotate(-4deg);
-  box-shadow: 0 12px 35px #5268460a;
+  box-shadow: 0 12px 35px #11181c0a;
 }
 .art-bubble span {
-  color: #85965f;
+  color: var(--accent);
   float: right;
 }
 .art-bubble.reply {
-  background: #526846;
+  background: var(--accent);
   color: white;
   margin: 18px 0 0 45px;
   transform: rotate(3deg);
@@ -112,12 +112,12 @@ button:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  background: #dbe4ca;
+  background: var(--surface-alt);
   border-radius: 16px 16px 16px 3px;
   width: 75px;
   height: 42px;
   margin-top: 22px;
-  color: #7d8f63;
+  color: var(--accent);
 }
 .art-dots span,
 .typing-dots > span {
@@ -155,7 +155,7 @@ button:focus-visible {
   justify-content: center;
   padding: 64px 40px;
   position: relative;
-  background: #fcfcfa;
+  background: var(--surface);
 }
 .auth-form {
   width: 100%;
@@ -174,37 +174,37 @@ button:focus-visible {
   bottom: 30px;
 }
 :root {
-  --app-bg: #edf1ea;
+  --app-bg: #ffffff;
   --surface: #ffffff;
-  --surface-alt: #f6f8f4;
-  --chat-bg: #eef2e9;
-  --text: #28372d;
-  --muted: #758477;
-  --accent: #526d46;
-  --border: #e2e8de;
-  --selected: #e7efdf;
+  --surface-alt: #f4f6f7;
+  --chat-bg: #ffffff;
+  --text: #11181c;
+  --muted: #687076;
+  --accent: #0a7ea4;
+  --border: #e3e8eb;
+  --selected: #e3f2f8;
   --bubble: #ffffff;
-  --outgoing: #deebd2;
-  --search: #f0f4ec;
+  --outgoing: #e3f2f8;
+  --search: #f4f6f7;
   --error-bg: #fff0eb;
-  --error-text: #a44930;
-  --shadow: 0 2px 3px #26332208;
+  --error-text: #b3261e;
+  --shadow: 0 2px 3px #11181c08;
 }
 :root[data-theme='dark'] {
-  --app-bg: #101612;
-  --surface: #19211c;
-  --surface-alt: #1e2922;
-  --chat-bg: #121b16;
-  --text: #e5ece4;
-  --muted: #9aaea0;
-  --accent: #adc996;
-  --border: #2b3a30;
-  --selected: #30432f;
-  --bubble: #233027;
-  --outgoing: #3b5335;
-  --search: #243027;
+  --app-bg: #151718;
+  --surface: #151718;
+  --surface-alt: #202426;
+  --chat-bg: #151718;
+  --text: #ecedee;
+  --muted: #9ba1a6;
+  --accent: #ffffff;
+  --border: #343a3e;
+  --selected: #2c373d;
+  --bubble: #202426;
+  --outgoing: #2c373d;
+  --search: #202426;
   --error-bg: #3c2722;
-  --error-text: #f2b59c;
+  --error-text: #ffb4ab;
   --shadow: 0 2px 3px #00000018;
 }
 html,
@@ -461,10 +461,10 @@ button {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #ac9566;
+  background: var(--muted);
 }
 .connection.online i {
-  background: #83ac69;
+  background: var(--accent);
 }
 .conversation {
   min-height: 0;

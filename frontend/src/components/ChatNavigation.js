@@ -127,7 +127,7 @@ export default function ChatNavigation({
                     width: 10,
                     height: 10,
                     borderRadius: '50%',
-                    background: '#28b77a',
+                    background: 'var(--accent)',
                     border: '2px solid var(--surface, white)',
                   }}
                 />

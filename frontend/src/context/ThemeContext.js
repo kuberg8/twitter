@@ -62,7 +62,7 @@ export default function ThemeSettingsProvider({ children }) {
     document.documentElement.style.colorScheme = mode;
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', mode === 'dark' ? '#101612' : '#f2f5ef');
+      ?.setAttribute('content', mode === 'dark' ? '#151718' : '#ffffff');
   }, [mode]);
   return (
     <ThemeContext.Provider value={context}>

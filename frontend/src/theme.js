@@ -4,16 +4,19 @@ export function createAppTheme(mode) {
   return createTheme({
     palette: {
       mode,
-      primary: { main: dark ? '#a8c792' : '#526b48' },
+      primary: {
+        main: dark ? '#ffffff' : '#0a7ea4',
+        contrastText: dark ? '#151718' : '#ffffff',
+      },
       background: {
-        default: dark ? '#101612' : '#f2f5ef',
-        paper: dark ? '#1b241e' : '#ffffff',
+        default: dark ? '#151718' : '#ffffff',
+        paper: dark ? '#151718' : '#ffffff',
       },
       text: {
-        primary: dark ? '#e5ece4' : '#243128',
-        secondary: dark ? '#a3b1a6' : '#758276',
+        primary: dark ? '#ecedee' : '#11181c',
+        secondary: dark ? '#9ba1a6' : '#687076',
       },
-      divider: dark ? '#303c33' : '#e4eae1',
+      divider: dark ? '#343a3e' : '#e3e8eb',
     },
     typography: {
       fontFamily:

@@ -1,6 +1,6 @@
 {
   "short_name": "twitter",
-  "name": "Twitter — общий чат",
+  "name": "Twitter \u2014 \u043e\u0431\u0449\u0438\u0439 \u0447\u0430\u0442",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,8 +20,8 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#526846",
-  "background_color": "#f7f8f5",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
   "id": ".",
   "scope": "."
 }
