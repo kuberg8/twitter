@@ -20,6 +20,7 @@ function Post({
   setEdit,
   isOwner,
   showReceipt = false,
+  showAuthor = true,
   isRead = false,
 }) {
   const [anchor, setAnchor] = useState(null);
@@ -35,7 +36,7 @@ function Post({
         {name.slice(0, 1).toUpperCase()}
       </div>
       <div className="message-bubble">
-        {!isOwner && (
+        {!isOwner && showAuthor && (
           <div className="message-meta">
             <strong>{name}</strong>
           </div>

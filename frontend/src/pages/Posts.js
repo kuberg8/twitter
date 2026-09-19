@@ -574,6 +574,7 @@ export function Conversation({
                   <Post
                     post={post}
                     showReceipt={!!peerId}
+                    showAuthor={!peerId}
                     isRead={
                       !!receipt.data?.position &&
                       messagePosition(post) <= receipt.data.position
