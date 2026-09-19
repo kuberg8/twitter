@@ -35,35 +35,39 @@ function Post({
         {name.slice(0, 1).toUpperCase()}
       </div>
       <div className="message-bubble">
-        <div className="message-meta">
-          <strong>{isOwner ? 'Вы' : name}</strong>
+        {!isOwner && (
+          <div className="message-meta">
+            <strong>{name}</strong>
+          </div>
+        )}
+        <p>{post.message}</p>
+        <div className="message-footer">
           {!Number.isNaN(date.getTime()) && (
             <time
               dateTime={date.toISOString()}
               title={date.toLocaleString('ru-RU')}
             >
-              {date.toLocaleString('ru-RU', {
+              {date.toLocaleTimeString('ru-RU', {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
             </time>
           )}
+          {isOwner && showReceipt && (
+            <span
+              className={`message-receipt ${isRead ? 'is-read' : ''}`}
+              role="img"
+              aria-label={isRead ? 'Прочитано' : 'Отправлено'}
+              title={isRead ? 'Прочитано собеседником' : 'Отправлено'}
+            >
+              {isRead ? (
+                <DoneAllRoundedIcon fontSize="inherit" />
+              ) : (
+                <DoneRoundedIcon fontSize="inherit" />
+              )}
+            </span>
+          )}
         </div>
-        <p>{post.message}</p>
-        {isOwner && showReceipt && (
-          <span
-            className={`message-receipt ${isRead ? 'is-read' : ''}`}
-            role="img"
-            aria-label={isRead ? 'Прочитано' : 'Отправлено'}
-            title={isRead ? 'Прочитано собеседником' : 'Отправлено'}
-          >
-            {isRead ? (
-              <DoneAllRoundedIcon fontSize="inherit" />
-            ) : (
-              <DoneRoundedIcon fontSize="inherit" />
-            )}
-          </span>
-        )}
       </div>
       {isOwner && (
         <div className="message-actions">

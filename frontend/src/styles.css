@@ -176,16 +176,16 @@ button:focus-visible {
 :root {
   --app-bg: #ffffff;
   --surface: #ffffff;
-  --surface-alt: #f4f6f7;
+  --surface-alt: #e9eef1;
   --chat-bg: #ffffff;
   --text: #11181c;
   --muted: #687076;
   --accent: #0a7ea4;
   --border: #e3e8eb;
   --selected: #e3f2f8;
-  --bubble: #ffffff;
-  --outgoing: #e3f2f8;
-  --search: #f4f6f7;
+  --bubble: #e9eef1;
+  --outgoing: #d5ebf5;
+  --search: #e9eef1;
   --error-bg: #fff0eb;
   --error-text: #b3261e;
   --shadow: 0 2px 3px #11181c08;
@@ -545,9 +545,9 @@ button {
   display: none;
 }
 .message-bubble {
-  min-width: 120px;
+  min-width: 0;
   max-width: min(75%, 660px);
-  padding: 11px 14px 12px;
+  padding: 7px 12px;
   border-radius: 16px 16px 16px 4px;
   background: var(--bubble);
   box-shadow: var(--shadow);
@@ -567,7 +567,7 @@ button {
   color: var(--accent);
   font-weight: 600;
 }
-.message-meta time {
+.message-footer time {
   font-size: 10px;
   color: var(--muted);
   white-space: nowrap;
@@ -577,7 +577,7 @@ button {
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  margin: 5px 0 0;
+  margin: 0;
 }
 .message-actions {
   display: flex;
@@ -883,7 +883,7 @@ button {
   }
   .message-bubble {
     max-width: 80%;
-    padding: 10px 12px;
+    padding: 7px 12px;
   }
   .message > .avatar {
     display: none;
@@ -1050,14 +1050,36 @@ button {
   flex: 0 0 34px;
   min-height: 22px;
 }
-.message-receipt {
+.message-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  margin-top: 3px;
-  font-size: 17px;
+  gap: 4px;
+  margin-top: 2px;
+  line-height: 16px;
+}
+.message-meta {
+  margin-bottom: 3px;
+}
+.message-receipt {
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 16px;
   color: var(--muted);
   transition: color 180ms ease;
 }
 .message-receipt.is-read {
   color: var(--accent);
+}
+
+@media (max-width: 700px) {
+  .messenger {
+    position: fixed;
+    top: var(--messenger-top, 0px);
+    left: 0;
+    height: var(--messenger-height, 100dvh);
+  }
+  .messenger.keyboard-open .message-composer {
+    padding-bottom: 6px;
+  }
 }

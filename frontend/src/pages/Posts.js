@@ -1,3 +1,4 @@
+import useVisualViewport from '../hooks/useVisualViewport';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import TypingIndicator from '../components/TypingIndicator';
 import ThemeChoice from '../components/ThemeChoice';
@@ -63,6 +64,7 @@ export default function Posts(props) {
 }
 
 function Messenger({ userId, token }) {
+  const viewportRef = useVisualViewport();
   const [params, setParams] = useSearchParams();
   const peerId = params.get('chat') || '';
   const threadOpen = params.has('chat') || params.get('room') === 'general';
@@ -81,7 +83,10 @@ function Messenger({ userId, token }) {
   );
   const back = useCallback(() => setParams({}), [setParams]);
   return (
-    <div className={`messenger ${threadOpen ? 'thread-open' : ''}`}>
+    <div
+      ref={viewportRef}
+      className={`messenger ${threadOpen ? 'thread-open' : ''}`}
+    >
       <aside className="messenger-sidebar">
         <header className="sidebar-header">
           <div className="messenger-brand">
