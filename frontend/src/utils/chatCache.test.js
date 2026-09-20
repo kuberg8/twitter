@@ -110,3 +110,46 @@ test('schedules one fresh read if a mutation invalidates an in-flight list reque
   expect(freshLoader).toHaveBeenCalledTimes(1);
   expect(cache.snapshot('chats').data).toEqual(['new conversation']);
 });
+
+test('optimistic read survives an in-flight stale unread response', async () => {
+  const cache = createChatCache();
+  cache.prime('unread', { peer: 2, other: 3 });
+  let resolve;
+  const pending = cache.read(
+    'unread',
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+    { force: true }
+  );
+  await Promise.resolve();
+  const release = cache.beginRead('peer');
+  expect(cache.snapshot('unread').data).toEqual({ peer: 0, other: 3 });
+  resolve({ peer: 2, other: 4 });
+  await pending;
+  expect(cache.snapshot('unread').data).toEqual({ peer: 0, other: 4 });
+  release();
+  await cache.read('unread', async () => ({ peer: 1 }), { force: true });
+  expect(cache.snapshot('unread').data.peer).toBe(1);
+});
+
+test('a stale request started during acknowledgement cannot resurrect the badge', async () => {
+  const cache = createChatCache();
+  cache.prime('unread', { peer: 2 });
+  const release = cache.beginRead('peer');
+  let resolve;
+  const pending = cache.read(
+    'unread',
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+    { force: true }
+  );
+  await Promise.resolve();
+  release();
+  resolve({ peer: 2 });
+  await pending;
+  expect(cache.snapshot('unread').data.peer).toBe(0);
+});

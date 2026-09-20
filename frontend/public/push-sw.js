@@ -41,6 +41,7 @@ self.addEventListener('notificationclick', (event) => {
       const peerId = event.notification.data?.peerId;
       if (typeof peerId === 'string' && /^[a-f0-9]{24}$/i.test(peerId))
         target.searchParams.set('chat', peerId);
+      else target.searchParams.set('room', 'general');
       const url = target.href;
       const windows = await self.clients.matchAll({
         type: 'window',
@@ -50,8 +51,12 @@ self.addEventListener('notificationclick', (event) => {
         client.url.startsWith(self.registration.scope)
       );
       if (existing) {
-        await existing.navigate(url);
-        return existing.focus();
+        try {
+          const navigated = await existing.navigate(url);
+          if (navigated) return await navigated.focus();
+        } catch {
+          // A closing window must not prevent opening the requested conversation.
+        }
       }
       return self.clients.openWindow(url);
     })()

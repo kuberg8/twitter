@@ -24,7 +24,11 @@ const advance = () =>
     jest.advanceTimersByTime(600);
   });
 const props = () => ({
-  cache: { invalidate: jest.fn(), read: jest.fn().mockResolvedValue({}) },
+  cache: {
+    beginRead: jest.fn(() => jest.fn()),
+    invalidate: jest.fn(),
+    read: jest.fn().mockResolvedValue({}),
+  },
   peerId: 'peer',
   lastMessageId: 'message1',
   away: false,
@@ -74,4 +78,12 @@ test('background and mobile chat-list views never mark the hidden conversation a
   rerender({ ...initial, threadOpen: true });
   await advance();
   expect(markChatRead).toHaveBeenCalledTimes(1);
+});
+
+test('clears the badge and acknowledges without a timer', async () => {
+  const initial = props();
+  renderHook(() => useMarkChatRead(initial));
+  expect(initial.cache.beginRead).toHaveBeenCalledWith('peer');
+  expect(markChatRead).toHaveBeenCalledWith('peer', 'message1');
+  await act(async () => {});
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { loadUnread, markChatRead } from '../api/chats';
 
 export default function useMarkChatRead({
@@ -11,7 +11,7 @@ export default function useMarkChatRead({
   nearBottom,
 }) {
   const acknowledged = useRef(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     let disposed = false;
     let pending = false;
     let timer;
@@ -33,21 +33,26 @@ export default function useMarkChatRead({
       )
         return;
       pending = true;
+      const release = cache.beginRead(peerId || 'general');
       try {
         await markChatRead(peerId, lastMessageId);
-        if (disposed) return;
         cache.invalidate('unread');
+        release();
         await cache.read('unread', loadUnread, { force: true });
         if (!disposed) acknowledged.current = key;
       } catch {
+        release();
+        cache.invalidate('unread');
+        cache.read('unread', loadUnread, { force: true }).catch(() => {});
         if (!disposed) timer = setTimeout(mark, 5000);
       } finally {
+        release();
         pending = false;
       }
     };
     const schedule = () => {
       clearTimeout(timer);
-      if (canRead()) timer = setTimeout(mark, 500);
+      if (canRead()) void mark();
     };
     schedule();
     document.addEventListener('visibilitychange', schedule);

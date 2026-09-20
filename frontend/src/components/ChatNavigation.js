@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button, IconButton } from '@mui/material';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -230,21 +230,14 @@ function UserSearch({ cache, onChoose }) {
 }
 
 function UnreadBadge({ count }) {
-  const previous = useRef(count || 0);
-  useEffect(() => {
-    if (count) previous.current = count;
-  }, [count]);
-  const displayed = count || previous.current;
+  if (!count) return null;
   return (
     <span className="unread-slot">
       <span
-        className={`unread-badge ${count ? 'badge-visible' : 'badge-hidden'}`}
-        aria-hidden={!count}
-        aria-label={`Непрочитанных сообщений: ${displayed}`}
+        className="unread-badge"
+        aria-label={`Непрочитанных сообщений: ${count}`}
       >
-        <span key={displayed} className="unread-number">
-          {displayed > 99 ? '99+' : displayed}
-        </span>
+        {count > 99 ? '99+' : count}
       </span>
     </span>
   );

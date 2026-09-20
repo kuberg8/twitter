@@ -1,5 +1,8 @@
 const webpush = require('web-push')
 const Subscription = require('../models/PushSubscription')
+const ChatRead = require('../models/ChatRead')
+const { readPosition } = require('./unread')
+const { setTimeout: delay } = require('node:timers/promises')
 
 function getConfig() {
   const {
@@ -54,6 +57,9 @@ async function sendPostNotifications(post) {
     const subscriptions = await Subscription.find({
       user: post.recipient || { $ne: post.user._id },
     }).lean()
+    if (!subscriptions.length) return
+    // Give realtime delivery and read acknowledgements a short head start.
+    await delay(1500)
     const name =
       [post.user.first_name, post.user.last_name].filter(Boolean).join(' ') ||
       'Новое сообщение'
@@ -62,6 +68,11 @@ async function sendPostNotifications(post) {
       await Promise.all(
         subscriptions.slice(i, i + 10).map(async (subscription) => {
           if (!validEndpoint(subscription.endpoint)) return
+          const read = await ChatRead.findOne({
+            user: subscription.user,
+            peer: post.recipient ? String(post.user._id) : 'general',
+          }).lean()
+          if (read?.position >= readPosition(post)) return
           const payload = JSON.stringify({
             title: name.slice(0, 100),
             body: post.message.slice(0, 160),

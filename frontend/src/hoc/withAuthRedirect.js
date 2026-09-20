@@ -7,9 +7,9 @@ export function withAuthRedirect(InputComponent) {
   const isAuthPage = currentPath === '/sign-in' || currentPath === '/sign-up';
 
   if (!isAuth && !isAuthPage) {
-    return <Navigate to="/sign-in" replace={true} />;
+    return <Navigate to={`/sign-in${window.location.search}`} replace={true} />;
   } else if (isAuth && isAuthPage) {
-    return <Navigate to="/" replace={true} />;
+    return <Navigate to={`/${window.location.search}`} replace={true} />;
   }
 
   return InputComponent;

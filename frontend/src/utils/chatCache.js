@@ -1,6 +1,7 @@
 // Session-only cache. Never persists private messages to disk or shares data across accounts.
 export function createChatCache(maxEntries = 40) {
   const entries = new Map();
+  const unreadReads = new Map();
   const entryFor = (key) => {
     if (!entries.has(key))
       entries.set(key, {
@@ -26,10 +27,28 @@ export function createChatCache(maxEntries = 40) {
     return entry;
   };
   const publish = (entry, state) => {
+    if (state.data && entries.get('unread') === entry) {
+      state = { ...state, data: { ...state.data } };
+      unreadReads.forEach((_, peer) => {
+        state.data[peer] = 0;
+      });
+    }
     entry.state = state;
     entry.listeners.forEach((listener) => listener());
   };
   const cache = {
+    beginRead(peer) {
+      const token = {};
+      unreadReads.set(peer, token);
+      cache.prime('unread', {});
+      cache.update('unread', (counts) => ({ ...counts, [peer]: 0 }));
+      return () => {
+        if (unreadReads.get(peer) !== token) return;
+        // Preserve the optimistic patch on any request started during the POST.
+        cache.update('unread', (counts) => ({ ...counts, [peer]: 0 }));
+        unreadReads.delete(peer);
+      };
+    },
     snapshot: (key) => entryFor(key).state,
     subscribe(key, listener) {
       const entry = entryFor(key);
@@ -110,6 +129,7 @@ export function createChatCache(maxEntries = 40) {
     },
     clear() {
       entries.clear();
+      unreadReads.clear();
     },
   };
   return cache;

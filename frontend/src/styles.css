@@ -1047,7 +1047,9 @@ button {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  flex: 0 0 34px;
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
   min-height: 22px;
 }
 .message-footer {
@@ -1081,5 +1083,25 @@ button {
   }
   .messenger.keyboard-open .message-composer {
     padding-bottom: 6px;
+  }
+}
+
+.chat-link {
+  position: relative;
+}
+.chat-link-text > small {
+  padding-right: 34px;
+}
+@media (max-width: 700px) {
+  .messenger,
+  .conversation,
+  .message-composer {
+    transition: none;
+  }
+  .messenger.keyboard-open .message-composer {
+    padding: 6px 12px;
+  }
+  .messenger.keyboard-open .conversation-messages {
+    padding-bottom: 8px;
   }
 }

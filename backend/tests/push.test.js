@@ -1,3 +1,12 @@
+const ChatRead = require('../models/ChatRead')
+const { beforeEach, afterEach } = require('node:test')
+const originalReadFind = ChatRead.findOne
+beforeEach(() => {
+  ChatRead.findOne = () => ({ lean: async () => null })
+})
+afterEach(() => {
+  ChatRead.findOne = originalReadFind
+})
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const webpush = require('web-push')
@@ -163,6 +172,19 @@ test('private notifications target only the recipient and link back to the sende
     assert.deepEqual(query, { user: 'recipient' })
     assert.equal(payload.recipientId, 'recipient')
     assert.equal(payload.peerId, 'sender')
+    payload = null
+    ChatRead.findOne = (filter) => {
+      assert.deepEqual(filter, { user: 'recipient', peer: 'sender' })
+      return { lean: async () => ({ position: '9999999999999999:post' }) }
+    }
+    await sendPostNotifications({
+      _id: 'post',
+      created_at: 1,
+      recipient: 'recipient',
+      user: { _id: 'sender' },
+      message: 'Already read',
+    })
+    assert.equal(payload, null)
   } finally {
     Subscription.find = originalFind
     webpush.sendNotification = originalSend

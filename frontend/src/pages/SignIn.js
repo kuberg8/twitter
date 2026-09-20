@@ -75,7 +75,7 @@ function SignIn() {
       const { data } = await login(email, password);
 
       dispatch(loginAction({ userId: data.user_id, token: data.token }));
-      history('/');
+      history(`/${window.location.search}`);
     } catch (error) {
       return {
         [FORM_ERROR]:
