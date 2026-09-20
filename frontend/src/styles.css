@@ -1074,15 +1074,13 @@ button {
   color: var(--accent);
 }
 
-@media (max-width: 700px) {
+@media (max-width: 700px), (pointer: coarse) {
   .messenger {
     position: fixed;
-    top: var(--messenger-top, 0px);
+    top: 0;
+    transform: translate3d(0, var(--messenger-top, 0px), 0);
     left: 0;
     height: var(--messenger-height, 100dvh);
-  }
-  .messenger.keyboard-open .message-composer {
-    padding-bottom: 6px;
   }
 }
 
@@ -1098,10 +1096,21 @@ button {
   .message-composer {
     transition: none;
   }
-  .messenger.keyboard-open .message-composer {
-    padding: 6px 12px;
+  .message-composer {
+    padding: 12px 12px
+      max(
+        12px,
+        calc(env(safe-area-inset-bottom, 0px) - var(--keyboard-overlap, 0px))
+      );
   }
-  .messenger.keyboard-open .conversation-messages {
-    padding-bottom: 8px;
-  }
+}
+
+.message-failed {
+  border: 0;
+  background: none;
+  color: var(--danger, #b3261e);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px;
 }

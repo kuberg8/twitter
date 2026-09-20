@@ -2,13 +2,14 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button, CircularProgress, IconButton } from '@mui/material';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import { createPost, updatePost } from '../api/posts';
+import { updatePost } from '../api/posts';
 export default function MessageComposer({
   peerId,
   drafts,
   editing,
   onEdit,
   onMutation,
+  onSend,
   disabled,
   onTyping,
 }) {
@@ -26,7 +27,7 @@ export default function MessageComposer({
   );
   useEffect(() => {
     setValue(editing ? editing.message : drafts.current[peerId] || '');
-    if (editing) input.current?.focus();
+    if (editing) input.current?.focus({ preventScroll: true });
   }, [editing, drafts, peerId]);
   useLayoutEffect(() => {
     if (!input.current) return;
@@ -38,19 +39,25 @@ export default function MessageComposer({
     if (!value.trim() || saving || disabled) return;
     onTyping?.(peerId, false);
     clearTimeout(typingTimer.current);
+    if (!editing) {
+      onSend(value.trim());
+      drafts.current[peerId] = '';
+      setValue('');
+      setError('');
+      input.current?.focus({ preventScroll: true });
+      return;
+    }
     setSaving(true);
     setError('');
     const submitted = value;
     try {
-      const result = editing
-        ? await updatePost(editing._id, submitted.trim())
-        : await createPost(submitted.trim(), peerId || null);
+      const result = await updatePost(editing._id, submitted.trim());
       if (!editing && drafts.current[peerId] === submitted)
         drafts.current[peerId] = '';
       setValue(drafts.current[peerId] || '');
       onEdit(null);
       onMutation(editing ? 'updated' : 'created', result?.data?.post);
-      input.current?.focus();
+      input.current?.focus({ preventScroll: true });
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -118,6 +125,7 @@ export default function MessageComposer({
         />
         <Button
           type="submit"
+          onMouseDown={(event) => event.preventDefault()}
           className="send-button"
           variant="contained"
           disabled={!value.trim() || saving || disabled}

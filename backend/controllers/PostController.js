@@ -51,7 +51,20 @@ class PostController {
           .json({ message: 'Ошибка создания поста', ...errors })
       }
 
-      const { message, recipient = null } = req.body
+      const { message, recipient = null, clientMessageId } = req.body
+      if (clientMessageId !== undefined && (typeof clientMessageId !== 'string' || !/^[a-zA-Z0-9-]{8,120}$/.test(clientMessageId))) {
+        return res.status(400).json({ message: 'Некорректный идентификатор сообщения.' })
+      }
+      const requestKey = clientMessageId ? { 'user._id': new Types.ObjectId(req.user.id), clientMessageId } : null
+      const replay = (existing) => {
+        if (existing.message !== message || String(existing.recipient || '').toLowerCase() !== String(recipient || '').toLowerCase())
+          return res.status(409).json({ message: 'Идентификатор уже использован для другого сообщения.' })
+        return res.json({ message: 'Пост успешно создан', post: publicPost(existing) })
+      }
+      if (requestKey) {
+        const existing = await Post.findOne(requestKey)
+        if (existing) return replay(existing)
+      }
       if (
         recipient !== null &&
         (!validId(recipient) ||
@@ -67,6 +80,7 @@ class PostController {
       const post = new Post({
         message,
         recipient,
+        ...(clientMessageId ? { clientMessageId } : {}),
         user: {
           _id,
           first_name,
@@ -74,7 +88,15 @@ class PostController {
         },
       })
 
-      await post.save()
+      try {
+        await post.save()
+      } catch (error) {
+        if (requestKey && error.code === 11000) {
+          const existing = await Post.findOne(requestKey)
+          if (existing) return replay(existing)
+        }
+        throw error
+      }
       void sendPostNotifications(post)
       req.app.locals.broadcastPosts?.(post, 'created')
       res.json({ message: 'Пост успешно создан', post: publicPost(post) })

@@ -7,6 +7,8 @@ import React, {
   useEffect,
   useLayoutEffect,
   useRef,
+  useMemo,
+  useSyncExternalStore,
   useState,
 } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -44,7 +46,8 @@ import {
   deleteChat,
   loadReadReceipt,
 } from '../api/chats';
-import { getPosts, deletePost } from '../api/posts';
+import { createOutbox, mergeOutgoing } from '../utils/outbox';
+import { getPosts, deletePost, createPost } from '../api/posts';
 import { disablePush } from '../utils/pushNotifications';
 import {
   createChatCache,
@@ -69,6 +72,22 @@ function Messenger({ userId, token }) {
   const peerId = params.get('chat') || '';
   const threadOpen = params.has('chat') || params.get('room') === 'general';
   const [cache] = useState(createChatCache);
+  const [outbox] = useState(() =>
+    createOutbox(
+      userId,
+      async (message, peer, id) =>
+        (await createPost(message, peer || null, id)).data.post,
+      (post) => {
+        const key = messageKey(post.recipient || '');
+        cache.prime(key, { posts: [], nextCursor: null });
+        cache.update(key, (page) => applyMessageChange(page, post, 'created'));
+        cache.invalidate('chats');
+        cache
+          .read('chats', async () => (await getChats()).data, { force: true })
+          .catch(() => {});
+      }
+    )
+  );
   const drafts = useRef(Object.create(null));
   const sound = useMessageSound(userId, peerId);
   const { connected, presence, typing, typingPeers, sendTyping } =
@@ -142,6 +161,7 @@ function Messenger({ userId, token }) {
         userId={userId}
         peerId={peerId}
         cache={cache}
+        outbox={outbox}
         drafts={drafts}
         sound={sound}
         onBack={back}
@@ -193,6 +213,7 @@ export function Conversation({
   peerId,
   cache,
   drafts,
+  outbox,
   sound,
   onBack,
   connected,
@@ -216,7 +237,18 @@ export function Conversation({
   );
   const receiptLoader = useCallback(() => loadReadReceipt(peerId), [peerId]);
   const receipt = useCachedResource(cache, receiptKey(peerId), receiptLoader);
-  const posts = history.data?.posts || EMPTY;
+  const serverPosts = history.data?.posts || EMPTY;
+  const outgoing = useSyncExternalStore(outbox.subscribe, outbox.snapshot);
+  const posts = useMemo(
+    () =>
+      mergeOutgoing(serverPosts, outgoing, peerId).sort(
+        (a, b) => a.created_at - b.created_at || a._id.localeCompare(b._id)
+      ),
+    [serverPosts, outgoing, peerId]
+  );
+  useEffect(() => {
+    outbox.reconcile(serverPosts);
+  }, [outbox, serverPosts]);
   const arriving = useMessageEntrance(posts, !!history.data);
   const { notify } = sound;
   const refreshMessages = history.refresh;
@@ -237,7 +269,7 @@ export function Conversation({
   useMarkChatRead({
     cache,
     peerId,
-    lastMessageId: posts[posts.length - 1]?._id,
+    lastMessageId: serverPosts[serverPosts.length - 1]?._id,
     away,
     threadOpen,
     paused,
@@ -259,6 +291,15 @@ export function Conversation({
     if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
     nearBottom.current = true;
     setAway(false);
+  }, []);
+  useEffect(() => {
+    const element = scroll.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      if (nearBottom.current) element.scrollTop = element.scrollHeight;
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
   }, []);
   const followTyping = useCallback(() => {
     if (nearBottom.current) scrollBottom();
@@ -453,6 +494,7 @@ export function Conversation({
                     setDeletingChat(true);
                     try {
                       await deleteChat(peerId, deleteScope);
+                      outbox.clearPeer(peerId);
                       cache.update(messageKey(peerId), () => ({
                         posts: [],
                         nextCursor: null,
@@ -529,7 +571,7 @@ export function Conversation({
             </Button>
           </div>
         )}
-        {!history.data && !history.error ? (
+        {!history.data && !history.error && !posts.length ? (
           <div className="chat-empty">
             <CircularProgress size={26} />
             <p>Загружаем переписку…</p>
@@ -561,7 +603,13 @@ export function Conversation({
               new Date(posts[index - 1].created_at).toDateString() !==
                 date.toDateString();
             return (
-              <React.Fragment key={post._id}>
+              <React.Fragment
+                key={
+                  post.clientMessageId
+                    ? `${post.user?._id || post.user}:${post.clientMessageId}`
+                    : post._id
+                }
+              >
                 {showDate && (
                   <div className="date-divider">
                     <span>{label}</span>
@@ -573,6 +621,7 @@ export function Conversation({
                 >
                   <Post
                     post={post}
+                    retryPost={outbox.retry}
                     showReceipt={!!peerId}
                     showAuthor={!peerId}
                     isRead={
@@ -606,6 +655,10 @@ export function Conversation({
         </IconButton>
       )}
       <MessageComposer
+        onSend={(message) => {
+          outbox.send(message, peerId);
+          scrollBottom();
+        }}
         peerId={peerId}
         drafts={drafts}
         editing={editing}

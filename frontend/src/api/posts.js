@@ -19,8 +19,12 @@ async function getPosts(peer, before) {
  * Создание поста
  * @param {String} message
  */
-function createPost(message, recipient = null) {
-  return axios.post('/posts', { message, recipient });
+function createPost(message, recipient = null, clientMessageId) {
+  return axios.post(
+    '/posts',
+    { message, recipient, ...(clientMessageId ? { clientMessageId } : {}) },
+    { timeout: 20000 }
+  );
 }
 
 /**

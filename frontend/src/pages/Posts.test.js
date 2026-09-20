@@ -79,7 +79,7 @@ test('shows edit controls only for the owner and saves edits through the API', a
     expect(screen.getByRole('textbox', { name: 'Сообщение' })).toHaveValue('')
   );
 });
-test('keeps a draft after a failed send', async () => {
+test('keeps a failed message in the conversation and frees the composer', async () => {
   createPost.mockRejectedValue(new Error('offline'));
   render(<Posts userId="u2" />);
   await screen.findByText('Привет');
@@ -90,10 +90,9 @@ test('keeps a draft after a failed send', async () => {
     target: { value: 'Мой черновик' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Отправить' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('Текст сохранён');
-  expect(screen.getByRole('textbox', { name: 'Сообщение' })).toHaveValue(
-    'Мой черновик'
-  );
+  expect(await screen.findByRole('alert')).toHaveTextContent('Не доставлено');
+  expect(screen.getByText('Мой черновик')).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: 'Сообщение' })).toHaveValue('');
 });
 test('does not send whitespace-only messages', async () => {
   render(<Posts userId="u1" />);
@@ -125,7 +124,11 @@ test('opens a private chat, sends to its recipient and preserves the general-cha
   });
   fireEvent.click(screen.getByRole('button', { name: 'Отправить' }));
   await waitFor(() =>
-    expect(createPost).toHaveBeenCalledWith('Только для Бориса', 'peer')
+    expect(createPost).toHaveBeenCalledWith(
+      'Только для Бориса',
+      'peer',
+      expect.any(String)
+    )
   );
   await waitFor(() =>
     expect(screen.getByRole('textbox', { name: 'Сообщение' })).toHaveValue('')
@@ -327,4 +330,59 @@ test('restores read receipts from the server when opening a private chat', async
   expect(
     await screen.findByRole('img', { name: 'Прочитано' })
   ).toBeInTheDocument();
+});
+
+test('shows pending messages immediately, preserves the next draft and retries a failed bubble', async () => {
+  let resolve, reject;
+  createPost.mockImplementationOnce(
+    () =>
+      new Promise((yes, no) => {
+        resolve = yes;
+        reject = no;
+      })
+  );
+  render(<Posts userId="u2" />);
+  await screen.findByText('Привет');
+  const input = screen.getByRole('textbox', { name: 'Сообщение' });
+  fireEvent.change(input, { target: { value: 'Сразу в чате' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Отправить' }));
+  expect(screen.getByText('Сразу в чате')).toBeInTheDocument();
+  expect(
+    screen.getByRole('status', { name: 'Отправляется' })
+  ).toBeInTheDocument();
+  expect(input).toHaveValue('');
+  expect(input).not.toBeDisabled();
+  fireEvent.change(input, { target: { value: 'Следующее сообщение' } });
+  await act(async () => reject(new Error('offline')));
+  expect(input).toHaveValue('Следующее сообщение');
+  createPost.mockImplementationOnce(
+    () =>
+      new Promise((yes) => {
+        resolve = yes;
+      })
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Не доставлено. Повторить отправку' })
+  );
+  expect(createPost.mock.calls[1]).toEqual(createPost.mock.calls[0]);
+  const id = createPost.mock.calls[0][2];
+  await act(async () =>
+    resolve({
+      data: {
+        post: {
+          ...message,
+          _id: 'confirmed',
+          clientMessageId: id,
+          message: 'Сразу в чате',
+          user: { _id: 'u2', first_name: 'Вы' },
+        },
+      },
+    })
+  );
+  expect(screen.getAllByText('Сразу в чате')).toHaveLength(1);
+  expect(
+    screen.queryByRole('status', { name: 'Отправляется' })
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'Отправлено' })).toBeInTheDocument();
+  expect(input).toHaveValue('Следующее сообщение');
 });

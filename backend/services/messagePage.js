@@ -3,6 +3,7 @@ const { validId } = require('./conversations')
 function publicPost(post) {
   return {
     _id: post._id,
+    ...(post.clientMessageId ? { clientMessageId: post.clientMessageId } : {}),
     message: post.message,
     created_at: post.created_at,
     recipient: post.recipient || null,

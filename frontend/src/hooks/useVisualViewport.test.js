@@ -44,3 +44,37 @@ test('follows keyboard resize and pan, restores height, and removes listeners', 
     value: previous,
   });
 });
+
+test('uses overlay keyboard geometry and restores browser behavior on unmount', () => {
+  const keyboard = new EventTarget();
+  Object.assign(keyboard, {
+    overlaysContent: false,
+    boundingRect: { y: window.innerHeight, height: 0 },
+  });
+  Object.defineProperty(navigator, 'virtualKeyboard', {
+    configurable: true,
+    value: keyboard,
+  });
+  const { getByTestId, unmount } = render(<Harness />);
+  expect(keyboard.overlaysContent).toBe(true);
+  act(() => {
+    keyboard.boundingRect = { y: window.innerHeight - 260, height: 260 };
+    keyboard.dispatchEvent(new Event('geometrychange'));
+  });
+  expect(
+    getByTestId('viewport').style.getPropertyValue('--messenger-height')
+  ).toBe(`${window.innerHeight - 260}px`);
+  expect(
+    getByTestId('viewport').style.getPropertyValue('--keyboard-overlap')
+  ).toBe('260px');
+  act(() => {
+    keyboard.boundingRect = { y: window.innerHeight, height: 0 };
+    keyboard.dispatchEvent(new Event('geometrychange'));
+  });
+  expect(
+    getByTestId('viewport').style.getPropertyValue('--keyboard-overlap')
+  ).toBe('0px');
+  unmount();
+  expect(keyboard.overlaysContent).toBe(false);
+  delete navigator.virtualKeyboard;
+});

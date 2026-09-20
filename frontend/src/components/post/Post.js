@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  CircularProgress,
 } from '@mui/material';
 import DoneRoundedIcon from '@mui/icons-material/DoneRounded';
 import DoneAllRoundedIcon from '@mui/icons-material/DoneAllRounded';
@@ -16,6 +17,7 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 function Post({
   post,
+  retryPost,
   deletePost,
   setEdit,
   isOwner,
@@ -54,23 +56,47 @@ function Post({
               })}
             </time>
           )}
-          {isOwner && showReceipt && (
+          {isOwner && post.deliveryStatus === 'sending' && (
             <span
-              className={`message-receipt ${isRead ? 'is-read' : ''}`}
-              role="img"
-              aria-label={isRead ? 'Прочитано' : 'Отправлено'}
-              title={isRead ? 'Прочитано собеседником' : 'Отправлено'}
+              className="message-receipt"
+              role="status"
+              aria-label="Отправляется"
             >
-              {isRead ? (
-                <DoneAllRoundedIcon fontSize="inherit" />
-              ) : (
-                <DoneRoundedIcon fontSize="inherit" />
-              )}
+              <CircularProgress size={12} color="inherit" />
             </span>
           )}
+          {isOwner && post.deliveryStatus === 'failed' && (
+            <span role="alert">
+              <button
+                type="button"
+                className="message-failed"
+                title={post.deliveryError}
+                onClick={() => retryPost(post._id)}
+                aria-label="Не доставлено. Повторить отправку"
+              >
+                Не доставлено · Повторить
+              </button>
+            </span>
+          )}
+          {isOwner &&
+            !post.deliveryStatus &&
+            (showReceipt || post.clientMessageId) && (
+              <span
+                className={`message-receipt ${isRead ? 'is-read' : ''}`}
+                role="img"
+                aria-label={isRead ? 'Прочитано' : 'Отправлено'}
+                title={isRead ? 'Прочитано собеседником' : 'Отправлено'}
+              >
+                {isRead ? (
+                  <DoneAllRoundedIcon fontSize="inherit" />
+                ) : (
+                  <DoneRoundedIcon fontSize="inherit" />
+                )}
+              </span>
+            )}
         </div>
       </div>
-      {isOwner && (
+      {isOwner && !post.deliveryStatus && (
         <div className="message-actions">
           <IconButton
             aria-label="Действия с сообщением"
